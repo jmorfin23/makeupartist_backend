@@ -21,5 +21,6 @@ class User(db.Model):
 class Post(db.Model):
     post_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id')) # for logins
-    tweet = db.Column(db.String(140))
+    type_id = db.Column(db.Integer)
+    url = db.Column(db.String(250))
     date_posted = db.Column(db.DateTime, default=datetime.now().date())

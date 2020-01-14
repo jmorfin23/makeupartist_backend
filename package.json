@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "react-recaptcha": "^2.3.10"
+  }
+}

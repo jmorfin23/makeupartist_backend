@@ -25,11 +25,12 @@ def admin_login():
 
     user = User.query.filter_by(username=username).first()
 
-
     if user is None or not user.check_password(password):
         return jsonify({ 'message': 'Error #002: Invalid credentials' })
 
-    return jsonify({ 'Success': 'Admin logged in' })
+    return jsonify({ 'Success': 'Admin logged in', 'username': user.username,
+    'id': user.id
+    })
 
 
 @app.route('/api/admin-register', methods=['GET', 'POST'])
@@ -63,5 +64,18 @@ def contact():
     message = request.headers.get('message')
 
     sendEmail(name=name, email=email, phone=phone, subj=subject, message=message)
-    
+
     return jsonify({ 'Success': 'message sent'})
+
+
+
+@app.route('/api/post-save', methods=['POST'])
+def post():
+
+    #type 1: wedding
+    #type 2: hairstyle
+    #type 3: commercial
+    #type 4: studio
+
+    type = request.headers.get('type')
+    image = request.headers.get('image')
