@@ -1,6 +1,10 @@
 from app import app, db
 from flask import jsonify, request
 from app.models import User, Post
+from app.mail import sendEmail
+
+
+
 
 @app.route('/')
 @app.route('/index')
@@ -24,7 +28,7 @@ def admin_login():
 
     if user is None or not user.check_password(password):
         return jsonify({ 'message': 'Error #002: Invalid credentials' })
-    
+
     return jsonify({ 'Success': 'Admin logged in' })
 
 
@@ -46,3 +50,18 @@ def admin_register():
 
 
     return jsonify({ 'Success': 'Admin Registered' })
+
+
+
+
+@app.route('/api/contact', methods=['POST'])
+def contact():
+    name = request.headers.get('name')
+    email = request.headers.get('email')
+    phone = request.headers.get('phone')
+    subject = request.headers.get('subject')
+    message = request.headers.get('message')
+
+    sendEmail(name=name, email=email, phone=phone, subj=subject, message=message)
+    
+    return jsonify({ 'Success': 'message sent'})
