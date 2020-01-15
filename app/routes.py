@@ -57,36 +57,58 @@ def admin_register():
 
 @app.route('/api/contact', methods=['POST'])
 def contact():
-    name = request.headers.get('name')
-    email = request.headers.get('email')
-    phone = request.headers.get('phone')
-    subject = request.headers.get('subject')
-    message = request.headers.get('message')
+    try:
+        name = request.headers.get('name')
+        email = request.headers.get('email')
+        phone = request.headers.get('phone')
+        subject = request.headers.get('subject')
+        message = request.headers.get('message')
 
-    sendEmail(name=name, email=email, phone=phone, subj=subject, message=message)
+        sendEmail(name=name, email=email, phone=phone, subj=subject, message=message)
 
-    return jsonify({ 'Success': 'message sent'})
-
+        return jsonify({ 'Success': 'message sent'})
+    except:
+        return jsonify({ 'error': { 'message:': 'error in contact route. Please ask for assistance.' } })
 
 
 @app.route('/api/image-save', methods=['POST'])
 def post():
-
     admin = request.headers.get('admin')
     url = request.headers.get('image')
-    #finish this route// 
+    type = request.headers.get('type')
 
-    print('****')
-    print('****')
-    print('****')
-    print(admin)
-    print(url)
-    print('****')
-    print('****')
-    print('****')
+    user = User.query.filter_by(username=admin).first()
 
-    #type 1: wedding
-    #type 2: hairstyle
-    #type 3: commercial
-    #type 4: studio
+    if not user:
+        return jsonify({ 'Error': {'#004 User was not found'}})
+    if not type or not url:
+        return jsonify({ 'error': {'message': 'There was an error retrieving type or url. Please ask for assistance.'}})
+
+    #can definitely make this more efficient, think about front end cleanup as well//
+    if type.lower() == 'wedding':
+        typeID = 1
+    if type.lower() == 'hairstyle':
+        typeID = 2
+    if type.lower() == 'commercial':
+        typeID = 3
+    if type.lower() == 'studio':
+        typeID = 4
+
+    post = Post(user_id=user.id, type_id=typeID, url=url)
+
+    db.session.add(post)
+    db.session.commit()
+
     return jsonify({ 'Success': 'Image saved' })
+
+
+
+#method for retrieving specific or all types of images//
+@app.route('/api/retrieve-images')
+def retrieveImage():
+    p = Post.query.all()
+
+    data = []
+    for p1 in p:
+        data.append(p1.url)
+    return jsonify({ 'success': {'data': data}})
