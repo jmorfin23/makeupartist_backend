@@ -69,13 +69,24 @@ def contact():
 
 
 
-@app.route('/api/post-save', methods=['POST'])
+@app.route('/api/image-save', methods=['POST'])
 def post():
+
+    admin = request.headers.get('admin')
+    url = request.headers.get('image')
+    #finish this route// 
+
+    print('****')
+    print('****')
+    print('****')
+    print(admin)
+    print(url)
+    print('****')
+    print('****')
+    print('****')
 
     #type 1: wedding
     #type 2: hairstyle
     #type 3: commercial
     #type 4: studio
-
-    type = request.headers.get('type')
-    image = request.headers.get('image')
+    return jsonify({ 'Success': 'Image saved' })
