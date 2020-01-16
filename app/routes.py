@@ -80,7 +80,7 @@ def post():
     user = User.query.filter_by(username=admin).first()
 
     if not user:
-        return jsonify({ 'Error': {'#004 User was not found'}})
+        return jsonify({ 'error': {'message': '#004 User was not found'}})
     if not type or not url:
         return jsonify({ 'error': {'message': 'There was an error retrieving type or url. Please ask for assistance.'}})
 
@@ -99,16 +99,36 @@ def post():
     db.session.add(post)
     db.session.commit()
 
-    return jsonify({ 'Success': 'Image saved' })
+    return jsonify({ 'success': 'Image saved' })
 
 
 
 #method for retrieving specific or all types of images//
 @app.route('/api/retrieve-images')
 def retrieveImage():
-    p = Post.query.all()
+    try:
+        p = Post.query.all()
 
-    data = []
-    for p1 in p:
-        data.append(p1.url)
-    return jsonify({ 'success': {'data': data}})
+        data = []
+        for p1 in p:
+            data.append(p1.url)
+        return jsonify({ 'success': {'data': data}})
+    except:
+        return jsonify({ 'error': { 'message': 'Error retrieving all posts.' }})
+
+@app.route('/api/specific-image')
+def specific():
+    pass
+
+
+@app.route('/api/newsletter', methods=['POST'])
+def newsletter():
+    #grab email for newletter signup
+    print('**')
+    print('**')
+    print('inside newletter api');
+    print('**')
+    print('**')
+
+
+    return jsonify({ 'success': { 'message': 'You have successfully subscribed to my Newsletter! Thank you.' }})
