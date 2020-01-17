@@ -121,14 +121,9 @@ def specific():
     pass
 
 
-@app.route('/api/newsletter', methods=['POST'])
+@app.route('/api/sub-newsletter', methods=['POST'])
 def newsletter():
     #grab email for newletter signup
-    print('**')
-    print('**')
-    print('inside newletter api');
-    print('**')
-    print('**')
-
-
+    email = request.headers.get('email')
+    
     return jsonify({ 'success': { 'message': 'You have successfully subscribed to my Newsletter! Thank you.' }})
