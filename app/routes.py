@@ -112,7 +112,7 @@ def retrieveImage():
         data = []
         for p1 in p:
             data.append(p1.url)
-        return jsonify({ 'success': {'data': data}})
+        return jsonify({ 'data': data })
     except:
         return jsonify({ 'error': { 'message': 'Error retrieving all posts.' }})
 
@@ -123,7 +123,11 @@ def specific():
 
 @app.route('/api/sub-newsletter', methods=['POST'])
 def newsletter():
-    #grab email for newletter signup
-    email = request.headers.get('email')
-    
-    return jsonify({ 'success': { 'message': 'You have successfully subscribed to my Newsletter! Thank you.' }})
+
+    try:
+        #grab email for newletter signup
+        email = request.headers.get('email')
+
+        return jsonify({ 'success': { 'message': 'You have successfully subscribed to my Newsletter! Thank you.' }})
+    except:
+        return jsonify({ 'error': { 'message': 'Error, could not subscribe to newletter.' } })
