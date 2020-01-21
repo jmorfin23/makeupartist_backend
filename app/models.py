@@ -25,13 +25,15 @@ class Post(db.Model):
     url = db.Column(db.String(250))
     date_posted = db.Column(db.DateTime, default=datetime.now().date())
 
-class Blog_Post(db.Model):
+class BlogPost(db.Model):
     blog_post_id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150))
     url = db.Column(db.String(250))
-    comments = db.relationship('Comment', backref=db.backref('blog_post', lazy='joined'))
+    message = db.Column(db.String(2000))
+    comments = db.relationship('Comment', backref=db.backref('blogpost', lazy='joined'))
+    date_posted = db.Column(db.DateTime, default=datetime.now().date())
 
-class Comment():
+class Comment(db.Model):
     comment_id = db.Column(db.Integer, primary_key=True)
     blog_id = db.Column(db.Integer, db.ForeignKey('blog_post.blog_post_id'))
     name = db.Column(db.String(64))

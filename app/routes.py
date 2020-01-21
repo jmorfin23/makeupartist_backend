@@ -32,7 +32,9 @@ def admin_login():
     'id': user.id
     })
 
-
+# ================================================= #
+#use this to register admins username and password
+#tokens?
 @app.route('/api/admin-register', methods=['GET', 'POST'])
 def admin_register():
 
@@ -52,7 +54,7 @@ def admin_register():
 
     return jsonify({ 'Success': 'Admin Registered' })
 
-
+# ================================================= #
 
 
 @app.route('/api/contact', methods=['POST'])
@@ -131,3 +133,25 @@ def newsletter():
         return jsonify({ 'success': { 'message': 'You have successfully subscribed to my Newsletter! Thank you.' }})
     except:
         return jsonify({ 'error': { 'message': 'Error, could not subscribe to newletter.' } })
+
+
+@app.route('/api/add-blogpost', methods=['POST'])
+def addBlogPost():
+
+    url = request.headers.get('url')
+    title = request.headers.get('title')
+    message = request.headers.get('message')
+
+    if not url or not title or not message:
+        return jsonify({ 'error': { 'message': 'could not retrieve all parameters.' }})
+
+    return jsonify({ 'success': {'message': 'successfully posted blog post.' }})
+
+
+@app.route('/api/get-blogpost', methods=['GET'])
+def getBlogPost():
+
+    id = request.headers.get('post_id')
+
+    #query database for the post ID
+    return jsonify({ 'success': { 'data': 'data goes here' } })
