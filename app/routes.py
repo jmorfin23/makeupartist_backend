@@ -1,9 +1,10 @@
 from app import app, db
 from flask import jsonify, request
-from app.models import User, Post
+from app.models import User, Post, BlogPost, Comment
 from app.mail import sendEmail
+import json
 
-
+ADMIN_NAME='LUCY JONES'
 
 
 @app.route('/')
@@ -13,7 +14,7 @@ def index():
 
 
 
-@app.route('/api/admin-login', methods=['GET'])
+@app.route('/api/admin-login', methods=['GET', 'POST'])
 def admin_login():
 
     username = request.headers.get('username')
@@ -28,7 +29,7 @@ def admin_login():
     if user is None or not user.check_password(password):
         return jsonify({ 'message': 'Error #002: Invalid credentials' })
 
-    return jsonify({ 'Success': 'Admin logged in', 'username': user.username,
+    return jsonify({ 'success': 'Admin logged in', 'username': user.username,
     'id': user.id
     })
 
@@ -52,7 +53,7 @@ def admin_register():
     db.session.commit()
 
 
-    return jsonify({ 'Success': 'Admin Registered' })
+    return jsonify({ 'success': 'Admin Registered' })
 
 # ================================================= #
 
@@ -75,38 +76,44 @@ def contact():
 
 @app.route('/api/image-save', methods=['POST'])
 def post():
-    admin = request.headers.get('admin')
-    url = request.headers.get('image')
-    type = request.headers.get('type')
 
-    user = User.query.filter_by(username=admin).first()
+    try:
+        admin = request.headers.get('admin')
+        url = request.headers.get('image')
+        type = request.headers.get('type')
+        print(admin)
+        print(url)
+        print(type)
 
-    if not user:
-        return jsonify({ 'error': {'message': '#004 User was not found'}})
-    if not type or not url:
-        return jsonify({ 'error': {'message': 'There was an error retrieving type or url. Please ask for assistance.'}})
+        user = User.query.filter_by(username=admin).first()
 
-    #can definitely make this more efficient, think about front end cleanup as well//
-    if type.lower() == 'wedding':
-        typeID = 1
-    if type.lower() == 'hairstyle':
-        typeID = 2
-    if type.lower() == 'commercial':
-        typeID = 3
-    if type.lower() == 'studio':
-        typeID = 4
+        if not user:
+            return jsonify({ 'error': {'message': '#004 User was not found'}})
+        if type == 'null':
+            return jsonify({ 'error': {'message': 'Please select a type.'}})
 
-    post = Post(user_id=user.id, type_id=typeID, url=url)
+        #can definitely make this more efficient, think about front end cleanup as well//
+        if type.lower() == 'wedding':
+            typeID = 1
+        if type.lower() == 'hairstyle':
+            typeID = 2
+        if type.lower() == 'commercial':
+            typeID = 3
+        if type.lower() == 'studio':
+            typeID = 4
 
-    db.session.add(post)
-    db.session.commit()
+        post = Post(user_id=user.id, type_id=typeID, url=url)
 
-    return jsonify({ 'success': 'Image saved' })
+        db.session.add(post)
+        db.session.commit()
 
+        return jsonify({ 'success': 'Image saved' })
+    except:
+        return jsonify({ 'error': { 'message': 'Retrieving all parameters. Please try again.'}})
 
 
 #method for retrieving specific or all types of images//
-@app.route('/api/retrieve-images')
+@app.route('/api/retrieve-images', methods=['GET', 'POST'])
 def retrieveImage():
     try:
         p = Post.query.all()
@@ -135,20 +142,33 @@ def newsletter():
         return jsonify({ 'error': { 'message': 'Error, could not subscribe to newletter.' } })
 
 
-@app.route('/api/add-blogpost', methods=['POST'])
+@app.route('/api/add-blogpost', methods=['GET', 'POST'])
 def addBlogPost():
 
-    url = request.headers.get('url')
-    title = request.headers.get('title')
-    message = request.headers.get('message')
+    #retrieve blog post data from frontend
+    postInfo = request.headers.get('postInfo')
 
-    if not url or not title or not message:
+    #convert to data to python object
+    postInfo = json.loads(postInfo)
+
+    print(postInfo['title'])
+    print(postInfo['url'])
+    print(postInfo['text'])
+
+    if not postInfo['title'] or not postInfo['title'] or not postInfo['url']:
         return jsonify({ 'error': { 'message': 'could not retrieve all parameters.' }})
+
+    #post blogpost data to database
+    blogPost = BlogPost(title=postInfo['title'], author=ADMIN_NAME, url=postInfo['url'], content=postInfo['text'])
+
+    #ADD & COMMIT blogpost to database
+    db.session.add(blogPost)
+    db.session.commit()
 
     return jsonify({ 'success': {'message': 'successfully posted blog post.' }})
 
 
-@app.route('/api/get-blogpost', methods=['GET'])
+@app.route('/api/get-blogpost', methods=['GET', 'POST'])
 def getBlogPost():
 
     id = request.headers.get('post_id')

@@ -28,8 +28,9 @@ class Post(db.Model):
 class BlogPost(db.Model):
     blog_post_id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150))
+    author = db.Column(db.String(60))
     url = db.Column(db.String(250))
-    message = db.Column(db.String(2000))
+    content = db.Column(db.Text)
     comments = db.relationship('Comment', backref=db.backref('blogpost', lazy='joined'))
     date_posted = db.Column(db.DateTime, default=datetime.now().date())
 
