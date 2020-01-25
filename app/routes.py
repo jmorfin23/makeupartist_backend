@@ -17,44 +17,48 @@ def index():
 @app.route('/api/admin-login', methods=['GET', 'POST'])
 def admin_login():
 
-    username = request.headers.get('username')
-    password = request.headers.get('password')
+    try:
+        username = request.headers.get('username')
+        password = request.headers.get('password')
 
 
-    if not username or not password:
-        return jsonify({ 'Error #001': 'Error retrieving credentials. Try again.'})
+        if not username or not password:
+            return jsonify({ 'Error #001': 'Error retrieving credentials. Try again.'})
 
-    user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(username=username).first()
 
-    if user is None or not user.check_password(password):
-        return jsonify({ 'message': 'Error #002: Invalid credentials' })
+        if user is None or not user.check_password(password):
+            return jsonify({ 'message': 'Error #002: Invalid credentials' })
 
-    return jsonify({ 'success': 'Admin logged in', 'username': user.username,
-    'id': user.id
-    })
-
+        return jsonify({ 'success': 'Admin logged in', 'username': user.username,
+        'id': user.id
+        })
+    except:
+        return jsonify({ 'error': { 'message': "Error #001 in login." } })
 # ================================================= #
 #use this to register admins username and password
 #tokens?
 @app.route('/api/admin-register', methods=['GET', 'POST'])
 def admin_register():
 
-    username = request.headers.get('username')
-    password = request.headers.get('password')
+    try:
+        username = request.headers.get('username')
+        password = request.headers.get('password')
 
 
-    if not username or not password:
-        return jsonify({ 'Error #001': 'Error retrieving credentials. Try again.'})
+        if not username or not password:
+            return jsonify({ 'error': 'Error retrieving credentials. Try again.'})
 
-    u = User(username=username)
-    u.set_password(password)
+        u = User(username=username)
+        u.set_password(password)
 
-    db.session.add(u)
-    db.session.commit()
+        db.session.add(u)
+        db.session.commit()
 
 
-    return jsonify({ 'success': 'Admin Registered' })
-
+        return jsonify({ 'success': 'Admin Registered' })
+    except:
+        return jsonify({ 'error': { 'message': "Error #002 in registering." } })
 # ================================================= #
 
 
@@ -71,7 +75,7 @@ def contact():
 
         return jsonify({ 'Success': 'message sent'})
     except:
-        return jsonify({ 'error': { 'message:': 'error in contact route. Please ask for assistance.' } })
+        return jsonify({ 'error': { 'message:': 'Error #003 in contact.' } })
 
 
 @app.route('/api/image-save', methods=['POST'])
@@ -81,9 +85,6 @@ def post():
         admin = request.headers.get('admin')
         url = request.headers.get('image')
         type = request.headers.get('type')
-        print(admin)
-        print(url)
-        print(type)
 
         user = User.query.filter_by(username=admin).first()
 
@@ -109,7 +110,7 @@ def post():
 
         return jsonify({ 'success': 'Image saved' })
     except:
-        return jsonify({ 'error': { 'message': 'Retrieving all parameters. Please try again.'}})
+        return jsonify({ 'error': { 'message': 'Error #004 in save-image.'}})
 
 
 #method for retrieving specific or all types of images//
@@ -123,7 +124,7 @@ def retrieveImage():
             data.append(p1.url)
         return jsonify({ 'data': data })
     except:
-        return jsonify({ 'error': { 'message': 'Error retrieving all posts.' }})
+        return jsonify({ 'error': { 'message': 'Error #005 retrieving posts.' }})
 
 @app.route('/api/specific-image')
 def specific():
@@ -139,12 +140,16 @@ def newsletter():
 
         return jsonify({ 'success': { 'message': 'You have successfully subscribed to my Newsletter! Thank you.' }})
     except:
-        return jsonify({ 'error': { 'message': 'Error, could not subscribe to newletter.' } })
+        return jsonify({ 'error': { 'message': 'Error #007 could not subscribe to newletter.' } })
 
 
 @app.route('/api/add-blogpost', methods=['GET', 'POST'])
 def addBlogPost():
-
+    print('**')
+    print('**')
+    print('**')
+    print('**')
+    print('**')
     #retrieve blog post data from frontend
     postInfo = request.headers.get('postInfo')
 
@@ -168,10 +173,20 @@ def addBlogPost():
     return jsonify({ 'success': {'message': 'successfully posted blog post.' }})
 
 
-@app.route('/api/get-blogpost', methods=['GET', 'POST'])
+@app.route('/api/get-blogpost', methods=['GET'])
 def getBlogPost():
 
-    id = request.headers.get('post_id')
+    try:
+        #query database for all blog posts
+        blogPost = BlogPost.query.all();
 
-    #query database for the post ID
-    return jsonify({ 'success': { 'data': 'data goes here' } })
+        #list to store and send data to frontend
+        data = []
+
+        #iterate through posts
+        for p in blogPost:
+            data.append({'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'content': p.content, 'data_posted': p.date_posted})
+        #query database for the post ID
+        return jsonify({ 'data': data })
+    except:
+        return jsonify({ 'error': { 'message': 'Error #009 in get blog-post.' } })
