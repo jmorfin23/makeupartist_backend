@@ -18,23 +18,27 @@ def index():
 def admin_login():
 
     try:
-        username = request.headers.get('username')
-        password = request.headers.get('password')
+        #request data
+        userData = request.headers.get('data')
+        #convert to data to python object
+        userData = json.loads(userData)
 
-
-        if not username or not password:
+        if not userData['username'] or not userData['password']:
             return jsonify({ 'Error #001': 'Error retrieving credentials. Try again.'})
 
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(username=userData['username']).first()
 
-        if user is None or not user.check_password(password):
+        if user is None or not user.check_password(userData['password']):
             return jsonify({ 'message': 'Error #002: Invalid credentials' })
 
-        return jsonify({ 'success': 'Admin logged in', 'username': user.username,
-        'id': user.id
-        })
+        data = {
+            'id': user.id,
+            'username': user.username,
+            'status': True
+        }
+        return jsonify({ 'success': 'Admin logged in', 'data': data })
     except:
-        return jsonify({ 'error': { 'message': "Error #001 in login." } })
+        return jsonify({ 'error': { 'message': "Error #001 in login." }})
 # ================================================= #
 #use this to register admins username and password
 #tokens?
