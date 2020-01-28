@@ -110,7 +110,7 @@ def post():
 
         db.session.add(post)
         db.session.commit()
-    
+
         return jsonify({ 'success': 'Image saved', 'posted_image': post.url })
     except:
         return jsonify({ 'error': { 'message': 'Error #004 in save-image.'}})
@@ -125,6 +125,7 @@ def retrieveImage():
         data = []
         for p1 in p:
             data.append(p1.url)
+        data.reverse()
         return jsonify({ 'data': data })
     except:
         return jsonify({ 'error': { 'message': 'Error #005 retrieving posts.' }})
