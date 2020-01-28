@@ -18,19 +18,19 @@ def index():
 def admin_login():
 
     try:
-        #request data
+        #retrieve login data
         userData = request.headers.get('data')
+
         #convert to data to python object
         userData = json.loads(userData)
 
-        if not userData['username'] or not userData['password']:
-            return jsonify({ 'Error #001': 'Error retrieving credentials. Try again.'})
-
+        #retrieve user
         user = User.query.filter_by(username=userData['username']).first()
 
         if user is None or not user.check_password(userData['password']):
-            return jsonify({ 'message': 'Error #002: Invalid credentials' })
+            return jsonify({ 'error': 'Error #002: Invalid credentials', 'data': { 'status': False } })
 
+        #set user data
         data = {
             'id': user.id,
             'username': user.username,
@@ -38,7 +38,7 @@ def admin_login():
         }
         return jsonify({ 'success': 'Admin logged in', 'data': data })
     except:
-        return jsonify({ 'error': { 'message': "Error #001 in login." }})
+        return jsonify({ 'error': "Error #001 in login.", 'data': { 'status': False }})
 # ================================================= #
 #use this to register admins username and password
 #tokens?
@@ -86,33 +86,32 @@ def contact():
 def post():
 
     try:
-        admin = request.headers.get('admin')
-        url = request.headers.get('image')
-        type = request.headers.get('type')
+        imageInfo = request.headers.get('imageInfo')
 
-        user = User.query.filter_by(username=admin).first()
+        #convert to data to python object
+        imageInfo = json.loads(imageInfo)
+
+        user = User.query.filter_by(username=imageInfo['admin']).first()
 
         if not user:
             return jsonify({ 'error': {'message': '#004 User was not found'}})
-        if type == 'null':
-            return jsonify({ 'error': {'message': 'Please select a type.'}})
 
         #can definitely make this more efficient, think about front end cleanup as well//
-        if type.lower() == 'wedding':
+        if imageInfo['uploadType'].lower() == 'wedding':
             typeID = 1
-        if type.lower() == 'hairstyle':
+        if imageInfo['uploadType'].lower() == 'hairstyle':
             typeID = 2
-        if type.lower() == 'commercial':
+        if imageInfo['uploadType'].lower() == 'commercial':
             typeID = 3
-        if type.lower() == 'studio':
+        if imageInfo['uploadType'].lower() == 'studio':
             typeID = 4
 
-        post = Post(user_id=user.id, type_id=typeID, url=url)
+        post = Post(user_id=user.id, type_id=typeID, url=imageInfo['cloudURL'])
 
         db.session.add(post)
         db.session.commit()
-
-        return jsonify({ 'success': 'Image saved' })
+    
+        return jsonify({ 'success': 'Image saved', 'posted_image': post.url })
     except:
         return jsonify({ 'error': { 'message': 'Error #004 in save-image.'}})
 
