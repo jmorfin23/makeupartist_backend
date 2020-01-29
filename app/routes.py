@@ -116,6 +116,8 @@ def post():
         return jsonify({ 'error': { 'message': 'Error #004 in save-image.'}})
 
 
+
+
 #method for retrieving specific or all types of images//
 @app.route('/api/retrieve-images', methods=['GET', 'POST'])
 def retrieveImage():
@@ -130,9 +132,28 @@ def retrieveImage():
     except:
         return jsonify({ 'error': { 'message': 'Error #005 retrieving posts.' }})
 
-@app.route('/api/specific-image')
-def specific():
-    pass
+@app.route('/api/image-delete', methods=['GET', 'POST'])
+def deleteImage():
+
+    #retrieve image url from headers
+    image = request.get.headers('image')
+
+    print("**")
+    print("**")
+    print(image)
+    print("**")
+    print("**")
+
+    #query the database for that image to delete
+    d = Post.query.filter_by(url=image).first()
+
+    if not d:
+        return jsonify({ 'error': 'Could not retrieve that image from the database.' })
+
+    db.session.delete(d)
+    db.session.commit()
+
+    return jsonify({ 'success': 'Image deleted from database.' })
 
 
 @app.route('/api/sub-newsletter', methods=['POST'])
