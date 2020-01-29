@@ -136,16 +136,16 @@ def retrieveImage():
 def deleteImage():
 
     #retrieve image url from headers
-    image = request.get.headers('image')
+    imageURL = request.headers.get('imageURL')
 
     print("**")
     print("**")
-    print(image)
+    print(imageURL)
     print("**")
     print("**")
 
-    #query the database for that image to delete
-    d = Post.query.filter_by(url=image).first()
+    # #query the database for that image to delete
+    d = Post.query.filter_by(url=imageURL).first()
 
     if not d:
         return jsonify({ 'error': 'Could not retrieve that image from the database.' })
@@ -153,7 +153,7 @@ def deleteImage():
     db.session.delete(d)
     db.session.commit()
 
-    return jsonify({ 'success': 'Image deleted from database.' })
+    return jsonify({ 'deleted': d.url })
 
 
 @app.route('/api/sub-newsletter', methods=['POST'])
