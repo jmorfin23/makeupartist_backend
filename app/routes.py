@@ -94,7 +94,7 @@ def post():
         user = User.query.filter_by(username=imageInfo['admin']).first()
 
         if not user:
-            return jsonify({ 'error': {'message': '#004 User was not found'}})
+            return jsonify({ 'error': '#004 User was not found', 'status': False })
 
         #can definitely make this more efficient, think about front end cleanup as well//
         if imageInfo['uploadType'].lower() == 'wedding':
@@ -111,9 +111,9 @@ def post():
         db.session.add(post)
         db.session.commit()
 
-        return jsonify({ 'success': 'Image saved', 'posted_image': post.url })
+        return jsonify({ 'success': 'Image saved', 'posted_image': post.url, 'status': True })
     except:
-        return jsonify({ 'error': { 'message': 'Error #004 in save-image.'}})
+        return jsonify({ 'error': 'Error #004 in save-image.', 'status': False})
 
 
 
@@ -135,26 +135,28 @@ def retrieveImage():
 @app.route('/api/image-delete', methods=['GET', 'POST'])
 def deleteImage():
 
-    #retrieve image url from headers
-    imageURL = request.headers.get('imageURL')
+    try:
+        #retrieve image url from headers
+        imageURL = request.headers.get('imageURL')
 
-    print("**")
-    print("**")
-    print(imageURL)
-    print("**")
-    print("**")
+        print("**")
+        print("**")
+        print(imageURL)
+        print("**")
+        print("**")
 
-    # #query the database for that image to delete
-    d = Post.query.filter_by(url=imageURL).first()
+        # #query the database for that image to delete
+        d = Post.query.filter_by(url=imageURL).first()
 
-    if not d:
-        return jsonify({ 'error': 'Could not retrieve that image from the database.' })
+        if not d:
+            return jsonify({ 'error': 'Could not retrieve that image from the database.', 'status': False })
 
-    db.session.delete(d)
-    db.session.commit()
+        db.session.delete(d)
+        db.session.commit()
 
-    return jsonify({ 'deleted': d.url })
-
+        return jsonify({ 'status': True, 'deletedImage': d.url })
+    except:
+        return jsonify({ 'error': 'Could not delete image from database.', 'status': False })
 
 @app.route('/api/sub-newsletter', methods=['POST'])
 def newsletter():
