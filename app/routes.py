@@ -96,7 +96,7 @@ def post():
         if not user:
             return jsonify({ 'error': '#004 User was not found', 'status': False })
 
-        #can definitely make this more efficient, think about front end cleanup as well//
+            #can definitely make this more efficient, think about front end cleanup as well//
         if imageInfo['uploadType'].lower() == 'wedding':
             typeID = 1
         if imageInfo['uploadType'].lower() == 'hairstyle':
@@ -111,7 +111,10 @@ def post():
         db.session.add(post)
         db.session.commit()
 
-        return jsonify({ 'success': 'Image saved', 'posted_image': post.url, 'status': True })
+            #return new images array
+        images = Post.query.all()
+
+        return jsonify({ 'success': 'Image saved', 'posted_image': post.url, 'status': True, 'newLength':  len(images)})
     except:
         return jsonify({ 'error': 'Error #004 in save-image.', 'status': False})
 
@@ -127,7 +130,7 @@ def retrieveImage():
         data = []
         for p1 in p:
             data.append(p1.url)
-        data.reverse()
+        data = data[::-1]
         return jsonify({ 'data': data })
     except:
         return jsonify({ 'error': { 'message': 'Error #005 retrieving posts.' }})
@@ -139,12 +142,6 @@ def deleteImage():
         #retrieve image url from headers
         imageURL = request.headers.get('imageURL')
 
-        print("**")
-        print("**")
-        print(imageURL)
-        print("**")
-        print("**")
-
         # #query the database for that image to delete
         d = Post.query.filter_by(url=imageURL).first()
 
@@ -154,7 +151,9 @@ def deleteImage():
         db.session.delete(d)
         db.session.commit()
 
-        return jsonify({ 'status': True, 'deletedImage': d.url })
+        images = Post.query.all()
+
+        return jsonify({ 'status': True, 'deletedImage': d.url, 'newLength':  len(images) })
     except:
         return jsonify({ 'error': 'Could not delete image from database.', 'status': False })
 
