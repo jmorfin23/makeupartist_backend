@@ -185,17 +185,19 @@ def addBlogPost():
     print(postInfo['title'])
     print(postInfo['url'])
     print(postInfo['text'])
+    print('**')
+    print('**')
 
     if not postInfo['title'] or not postInfo['title'] or not postInfo['url']:
         return jsonify({ 'error': { 'message': 'could not retrieve all parameters.' }})
-
+    print('test')
     #post blogpost data to database
     blogPost = BlogPost(title=postInfo['title'], author=ADMIN_NAME, url=postInfo['url'], content=postInfo['text'])
-
+    print('test2')
     #ADD & COMMIT blogpost to database
     db.session.add(blogPost)
     db.session.commit()
-
+    print('test3')
     return jsonify({ 'success': {'message': 'successfully posted blog post.' }})
 
 
