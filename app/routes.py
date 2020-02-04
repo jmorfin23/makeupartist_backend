@@ -1,6 +1,6 @@
 from app import app, db
 from flask import jsonify, request
-from app.models import User, Post, BlogPost, Comment
+from app.models import User, ImagePost, BlogPost, Comment
 from app.mail import sendEmail
 import json
 
@@ -59,7 +59,6 @@ def admin_register():
         db.session.add(u)
         db.session.commit()
 
-
         return jsonify({ 'success': 'Admin Registered' })
     except:
         return jsonify({ 'error': { 'message': "Error #002 in registering." } })
@@ -96,42 +95,32 @@ def post():
         if not user:
             return jsonify({ 'error': '#004 User was not found', 'status': False })
 
-            #can definitely make this more efficient, think about front end cleanup as well//
-        if imageInfo['uploadType'].lower() == 'wedding':
-            typeID = 1
-        if imageInfo['uploadType'].lower() == 'hairstyle':
-            typeID = 2
-        if imageInfo['uploadType'].lower() == 'commercial':
-            typeID = 3
-        if imageInfo['uploadType'].lower() == 'studio':
-            typeID = 4
-
-        post = Post(user_id=user.id, type_id=typeID, url=imageInfo['cloudURL'])
+        post = ImagePost(user_id=user.id, type=imageInfo['uploadType'].lower(), url=imageInfo['cloudURL'])
 
         db.session.add(post)
         db.session.commit()
 
-            #return new images array
-        images = Post.query.all()
+        #return new images array
+        images = ImagePost.query.all()
 
-        return jsonify({ 'success': 'Image saved', 'posted_image': post.url, 'status': True, 'newLength':  len(images)})
+        return jsonify({ 'success': 'Image saved', 'posted_image': {'url': post.url, 'type': post.type}, 'status': True, 'newLength':  len(images)})
     except:
         return jsonify({ 'error': 'Error #004 in save-image.', 'status': False})
 
 
 
 
-#method for retrieving specific or all types of images//
+#retrieve all images
 @app.route('/api/retrieve-images', methods=['GET', 'POST'])
 def retrieveImage():
     try:
-        p = Post.query.all()
+        p = ImagePost.query.all()
 
-        data = []
-        for p1 in p:
-            data.append(p1.url)
-        data = data[::-1]
-        return jsonify({ 'data': data })
+
+        #make a list of dictionaries with url and type
+        data = [{'url': p1.url, 'type': p1.type} for p1 in p]
+
+        return jsonify({ 'data': data[::-1] })
     except:
         return jsonify({ 'error': { 'message': 'Error #005 retrieving posts.' }})
 
@@ -143,7 +132,7 @@ def deleteImage():
         imageURL = request.headers.get('imageURL')
 
         # #query the database for that image to delete
-        d = Post.query.filter_by(url=imageURL).first()
+        d = ImagePost.query.filter_by(url=imageURL).first()
 
         if not d:
             return jsonify({ 'error': 'Could not retrieve that image from the database.', 'status': False })
@@ -151,8 +140,8 @@ def deleteImage():
         db.session.delete(d)
         db.session.commit()
 
-        images = Post.query.all()
-
+        images = ImagePost.query.all()
+        
         return jsonify({ 'status': True, 'deletedImage': d.url, 'newLength':  len(images) })
     except:
         return jsonify({ 'error': 'Could not delete image from database.', 'status': False })
@@ -171,33 +160,23 @@ def newsletter():
 
 @app.route('/api/add-blogpost', methods=['GET', 'POST'])
 def addBlogPost():
-    print('**')
-    print('**')
-    print('**')
-    print('**')
-    print('**')
+    
     #retrieve blog post data from frontend
     postInfo = request.headers.get('postInfo')
 
     #convert to data to python object
     postInfo = json.loads(postInfo)
 
-    print(postInfo['title'])
-    print(postInfo['url'])
-    print(postInfo['text'])
-    print('**')
-    print('**')
-
     if not postInfo['title'] or not postInfo['title'] or not postInfo['url']:
         return jsonify({ 'error': { 'message': 'could not retrieve all parameters.' }})
-    print('test')
+
     #post blogpost data to database
     blogPost = BlogPost(title=postInfo['title'], author=ADMIN_NAME, url=postInfo['url'], content=postInfo['text'])
-    print('test2')
+    
     #ADD & COMMIT blogpost to database
     db.session.add(blogPost)
     db.session.commit()
-    print('test3')
+   
     return jsonify({ 'success': {'message': 'successfully posted blog post.' }})
 
 
@@ -208,12 +187,9 @@ def getBlogPost():
         #query database for all blog posts
         blogPost = BlogPost.query.all();
 
-        #list to store and send data to frontend
-        data = []
+        #list of blogpost info 
+        data = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'content': p.content, 'data_posted': p.date_posted} for p in blogPost]
 
-        #iterate through posts
-        for p in blogPost:
-            data.append({'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'content': p.content, 'data_posted': p.date_posted})
         #query database for the post ID
         return jsonify({ 'data': data })
     except:
