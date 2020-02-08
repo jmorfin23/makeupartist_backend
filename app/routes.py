@@ -65,6 +65,7 @@ def admin_register():
 # ================================================= #
 
 
+#contact page route
 @app.route('/api/contact', methods=['POST'])
 def contact():
     try:
@@ -80,7 +81,7 @@ def contact():
     except:
         return jsonify({ 'error': { 'message:': 'Error #003 in contact.' } })
 
-
+#saving an image
 @app.route('/api/image-save', methods=['POST'])
 def post():
 
@@ -124,6 +125,7 @@ def retrieveImage():
     except:
         return jsonify({ 'error': { 'message': 'Error #005 retrieving posts.' }})
 
+#deleting images 
 @app.route('/api/image-delete', methods=['GET', 'POST'])
 def deleteImage():
 
@@ -146,6 +148,7 @@ def deleteImage():
     except:
         return jsonify({ 'error': 'Could not delete image from database.', 'status': False })
 
+#subscribing to newsletter 
 @app.route('/api/sub-newsletter', methods=['POST'])
 def newsletter():
 
@@ -157,7 +160,7 @@ def newsletter():
     except:
         return jsonify({ 'error': { 'message': 'Error #007 could not subscribe to newletter.' } })
 
-
+#adding a blogpost 
 @app.route('/api/add-blogpost', methods=['GET', 'POST'])
 def addBlogPost():
     
@@ -179,7 +182,7 @@ def addBlogPost():
    
     return jsonify({ 'success': {'message': 'successfully posted blog post.' }})
 
-
+#retrieving all blogposts 
 @app.route('/api/get-blogpost', methods=['GET'])
 def getBlogPost():
 
@@ -194,3 +197,23 @@ def getBlogPost():
         return jsonify({ 'data': data })
     except:
         return jsonify({ 'error': { 'message': 'Error #009 in get blog-post.' } })
+
+#retrieving single blogpost
+@app.route('/api/single-post', methods=['GET'])
+def getSinglePost(): 
+    
+    id = request.headers.get('id')
+    
+    post = BlogPost.query.filter_by(blog_post_id=id).first()
+
+    data = {
+        'id': post.blog_post_id, 
+        'author': post.author,
+        'url': post.url,
+        'title': post.title, 
+        'date': post.date_posted, 
+        'content': post.content, 
+        'comments': post.comments
+    }
+
+    return jsonify({ 'success': data })
