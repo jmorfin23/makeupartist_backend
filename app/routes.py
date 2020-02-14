@@ -2,7 +2,8 @@ from app import app, db
 from flask import jsonify, request
 from app.models import User, ImagePost, BlogPost, Comment
 from app.mail import sendEmail
-import json
+from mailchimp3 import MailChimp 
+import json, requests
 
 ADMIN_NAME='LUCY JONES'
 
@@ -115,11 +116,11 @@ def post():
 @app.route('/api/retrieve-images', methods=['GET', 'POST'])
 def retrieveImage():
     try:
-        p = ImagePost.query.all()
+        images = ImagePost.query.all()
 
 
         #make a list of dictionaries with url and type
-        data = [{'url': p1.url, 'type': p1.type} for p1 in p]
+        data = [{'url': i.url, 'type': i.type, 'id': i.post_id} for i in images]
 
         return jsonify({ 'data': data[::-1] })
     except:
@@ -131,22 +132,22 @@ def deleteImage():
 
     try:
         #retrieve image url from headers
-        imageURL = request.headers.get('imageURL')
+        id = request.headers.get('id')
 
         # #query the database for that image to delete
-        d = ImagePost.query.filter_by(url=imageURL).first()
-
+        d = ImagePost.query.filter_by(post_id=id).first()
+        
         if not d:
-            return jsonify({ 'error': 'Could not retrieve that image from the database.', 'status': False })
+            return jsonify({ 'error': 'Could not retrieve that image from the database.', 'status': False})
 
         db.session.delete(d)
         db.session.commit()
-
-        images = ImagePost.query.all()
         
+        images = ImagePost.query.all()
+
         return jsonify({ 'status': True, 'deletedImage': d.url, 'newLength':  len(images) })
     except:
-        return jsonify({ 'error': 'Could not delete image from database.', 'status': False })
+        return jsonify({ 'error': 'Could not delete image from database.', 'status': False, 'newLength': len(images) })
 
 #subscribing to newsletter 
 @app.route('/api/sub-newsletter', methods=['POST'])
@@ -191,10 +192,10 @@ def getBlogPost():
         blogPost = BlogPost.query.all();
 
         #list of blogpost info 
-        data = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'content': p.content, 'data_posted': p.date_posted} for p in blogPost]
+        data = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'content': p.content, 'date_posted': p.date_posted} for p in blogPost]
 
         #query database for the post ID
-        return jsonify({ 'data': data })
+        return jsonify({ 'data': data[::-1] })
     except:
         return jsonify({ 'error': { 'message': 'Error #009 in get blog-post.' } })
 
@@ -217,3 +218,17 @@ def getSinglePost():
     }
 
     return jsonify({ 'success': data })
+
+
+@app.route('/api/mailchimp', methods=['GET'])
+def getData(): 
+
+    url = 'https://us4.api.mailchimp.com/3.0/'
+
+    auth = ('USERNAME', 'MYSECRETKEY')
+
+    headers = {'Content-Type': 'application/json'}
+
+    response = requests.get(url, auth=auth, headers=headers)
+    print(response)
+    return jsonify({ 'response': response.json() })
