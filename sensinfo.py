@@ -1,2 +1,3 @@
+#Variables for MailChimp API
 MAILCHIMP_API_KEY = 'cba4acfb5a985a1270ba93a057154e06-us4'
 MAILCHIMP_USERNAME = 'jmorfin776'
