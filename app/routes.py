@@ -3,6 +3,7 @@ from flask import jsonify, request
 from app.models import User, ImagePost, BlogPost, Comment
 from app.mail import sendEmail
 from mailchimp3 import MailChimp 
+from sensinfo import MAILCHIMP_API_KEY, MAILCHIMP_USERNAME
 import json, requests
 
 ADMIN_NAME='LUCY JONES'
@@ -223,12 +224,14 @@ def getSinglePost():
 @app.route('/api/mailchimp', methods=['GET'])
 def getData(): 
 
-    url = 'https://us4.api.mailchimp.com/3.0/'
+    url = 'https://us4.api.mailchimp.com/3.0/automations/50e64ce39f/emails/6376bb24f5/queue'
 
-    auth = ('USERNAME', 'MYSECRETKEY')
+    auth = (MAILCHIMP_USERNAME, MAILCHIMP_API_KEY)
 
     headers = {'Content-Type': 'application/json'}
 
-    response = requests.get(url, auth=auth, headers=headers)
-    print(response)
+    body = {'email_adress': 'jmorfin7577@yahoo.com'}
+
+    response = requests.post(url, auth=auth, headers=headers, body=body)
+
     return jsonify({ 'response': response.json() })
