@@ -224,14 +224,14 @@ def getSinglePost():
 @app.route('/api/mailchimp', methods=['GET'])
 def getData(): 
 
-    url = 'https://us4.api.mailchimp.com/3.0/automations/50e64ce39f/emails/6376bb24f5/queue'
+    url = 'https://us4.api.mailchimp.com/3.0/automations/' #50e64ce39f/emails/6376bb24f5/queue
 
     auth = (MAILCHIMP_USERNAME, MAILCHIMP_API_KEY)
 
     headers = {'Content-Type': 'application/json'}
 
-    body = {'email_adress': 'jmorfin7577@yahoo.com'}
+    # body = {'email_address': 'jmorfin7577@yahoo.com'}
 
-    response = requests.post(url, auth=auth, headers=headers, body=body)
+    response = requests.post(url, auth=auth, headers=headers)
 
     return jsonify({ 'response': response.json() })

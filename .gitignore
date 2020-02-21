@@ -1,3 +1,5 @@
 *__pycache__/
 *venv/
-/sensinfo.py
+*node_modules/
+app.db
+sensinfo.py
