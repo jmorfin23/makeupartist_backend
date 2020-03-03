@@ -172,17 +172,12 @@ def addBlogPost():
     if not postInfo['title'] or not postInfo['title'] or not postInfo['url']:
         return jsonify({ 'error': { 'message': 'could not retrieve all parameters.' }})
 
-    #create url for blogpost
+    #delete any whitespace in titles 
     postInfo['title'] = postInfo['title'].strip()
     alist = postInfo['title'].split(" ")
+    alist = list(filter(lambda x: False if x == '' else True , alist))
+    postInfo['title'] = ''.join(alist)
 
-    url = '-'.join(alist)
-    print('***')
-    print('***')
-    print(alist)
-    print(url)
-    print('***')
-    print('***')
     #post blogpost data to database
     blogPost = BlogPost(title=postInfo['title'], author=ADMIN_NAME, url=postInfo['url'], content=postInfo['text'])
     
@@ -199,9 +194,15 @@ def getBlogPost():
     try:
         #query database for all blog posts
         blogPost = BlogPost.query.all();
-
+        
         #list of blogpost info 
         data = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'content': p.content, 'date_posted': p.date_posted} for p in blogPost]
+
+        for i in range(len(data)): 
+            data[i]['title'] = data[i]['title'].strip()
+            alist = postInfo['title'].split(" ")
+            link = '-'.join(alist) 
+
 
         #query database for the post ID
         return jsonify({ 'data': data[::-1] })
