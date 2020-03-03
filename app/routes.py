@@ -2,19 +2,16 @@ from app import app, db
 from flask import jsonify, request
 from app.models import User, ImagePost, BlogPost, Comment
 from app.mail import sendEmail
-from mailchimp3 import MailChimp 
-from sensinfo import MAILCHIMP_API_KEY, MAILCHIMP_USERNAME
+from sensinfo import MAILCHIMP_API_KEY, MAILCHIMP_USERNAME, ADMIN_NAME
 import json, requests
 
-ADMIN_NAME='LUCY JONES'
+
 
 
 @app.route('/')
 @app.route('/index')
 def index():
     return "This is the make-up artist flask backend."
-
-
 
 @app.route('/api/admin-login', methods=['GET', 'POST'])
 def admin_login():
@@ -162,7 +159,7 @@ def newsletter():
     except:
         return jsonify({ 'error': { 'message': 'Error #007 could not subscribe to newletter.' } })
 
-#adding a blogpost 
+#this needs to be addressed. 
 @app.route('/api/add-blogpost', methods=['GET', 'POST'])
 def addBlogPost():
     
@@ -175,6 +172,17 @@ def addBlogPost():
     if not postInfo['title'] or not postInfo['title'] or not postInfo['url']:
         return jsonify({ 'error': { 'message': 'could not retrieve all parameters.' }})
 
+    #create url for blogpost
+    postInfo['title'] = postInfo['title'].strip()
+    alist = postInfo['title'].split(" ")
+
+    url = '-'.join(alist)
+    print('***')
+    print('***')
+    print(alist)
+    print(url)
+    print('***')
+    print('***')
     #post blogpost data to database
     blogPost = BlogPost(title=postInfo['title'], author=ADMIN_NAME, url=postInfo['url'], content=postInfo['text'])
     
@@ -220,6 +228,24 @@ def getSinglePost():
 
     return jsonify({ 'success': data })
 
+@app.route('/api/delete-blog-post', methods=['GET'])
+def deleteBlogPost(): 
+    print('inside delete blogpost')
+
+    id = request.headers.get('id')
+
+    if not id: 
+        return jsonify({'error': 'delete unsuccessful'})
+
+    post = BlogPost.query.filter_by(blog_post_id=id).first()
+
+    if not post: 
+        return jsonify({'error': 'delete unsuccessful'})
+
+    db.session.delete(post)
+    db.session.commit()
+
+    return jsonify({'success': 'Blog post successfully deleted'})
 
 @app.route('/api/mailchimp', methods=['GET'])
 def getData(): 
@@ -232,6 +258,6 @@ def getData():
 
     # body = {'email_address': 'jmorfin7577@yahoo.com'}
 
-    response = requests.post(url, auth=auth, headers=headers)
+    response = requests.get(url, auth=auth, headers=headers)
 
     return jsonify({ 'response': response.json() })
