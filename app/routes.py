@@ -241,11 +241,11 @@ def deleteBlogPost():
 
     if not post: 
         return jsonify({'error': 'delete unsuccessful'})
-
+    
     db.session.delete(post)
     db.session.commit()
 
-    return jsonify({'success': 'Blog post successfully deleted'})
+    return jsonify({'success': 'Blog post successfully deleted', 'id': post.blog_post_id})
 
 @app.route('/api/mailchimp', methods=['GET'])
 def getData(): 
