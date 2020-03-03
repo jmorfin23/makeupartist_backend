@@ -176,7 +176,7 @@ def addBlogPost():
     postInfo['title'] = postInfo['title'].strip()
     alist = postInfo['title'].split(" ")
     alist = list(filter(lambda x: False if x == '' else True , alist))
-    postInfo['title'] = ''.join(alist)
+    postInfo['title'] = ' '.join(alist)
 
     #post blogpost data to database
     blogPost = BlogPost(title=postInfo['title'], author=ADMIN_NAME, url=postInfo['url'], content=postInfo['text'])
@@ -197,12 +197,17 @@ def getBlogPost():
         
         #list of blogpost info 
         data = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'content': p.content, 'date_posted': p.date_posted} for p in blogPost]
-
+        
+        #remove special characters for URL link 
         for i in range(len(data)): 
-            data[i]['title'] = data[i]['title'].strip()
-            alist = postInfo['title'].split(" ")
-            link = '-'.join(alist) 
-
+            alphanumeric = ""
+            for character in data[i]['title']:
+                if character.isalnum() or character == ' ':
+                    alphanumeric += character
+            alphanumeric = alphanumeric.strip()
+            alist = alphanumeric.split(" ")
+            link = '-'.join(alist)
+            data[i]['link'] = link.lower()
 
         #query database for the post ID
         return jsonify({ 'data': data[::-1] })
