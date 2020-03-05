@@ -45,22 +45,24 @@ def admin_login():
 def admin_register():
 
     try:
-        username = request.headers.get('username')
-        password = request.headers.get('password')
+        #retrieve login data
+        userData = request.headers.get('data')
 
+        #convert to data to python object
+        userData = json.loads(userData)
 
-        if not username or not password:
-            return jsonify({ 'error': 'Error retrieving credentials. Try again.'})
+        if not userData['username'] or not userData['password']:
+            return jsonify({ 'error': 'Error retrieving credentials. Try again.', 'data': { 'status': False }})
 
-        u = User(username=username)
-        u.set_password(password)
+        u = User(username=userData['username'])
+        u.set_password(userData['password'])
 
         db.session.add(u)
         db.session.commit()
 
-        return jsonify({ 'success': 'Admin Registered' })
+        return jsonify({ 'success': 'Admin Registered', 'data': { 'status': False } })
     except:
-        return jsonify({ 'error': { 'message': "Error #002 in registering." } })
+        return jsonify({ 'error': { 'message': "Error #002 in registering.", 'data': { 'status': False } } })
 # ================================================= #
 
 
@@ -116,13 +118,15 @@ def retrieveImage():
     try:
         images = ImagePost.query.all()
 
-
         #make a list of dictionaries with url and type
         data = [{'url': i.url, 'type': i.type, 'id': i.post_id} for i in images]
 
+        print('**')
+        print(data)
+        
         return jsonify({ 'data': data[::-1] })
     except:
-        return jsonify({ 'error': { 'message': 'Error #005 retrieving posts.' }})
+        return jsonify({ 'error': { 'message': 'Error #005 retrieving posts.' }, 'data': [] })
 
 #deleting images 
 @app.route('/api/image-delete', methods=['GET', 'POST'])
@@ -169,10 +173,10 @@ def addBlogPost():
     #convert to data to python object
     postInfo = json.loads(postInfo)
 
-    if not postInfo['title'] or not postInfo['title'] or not postInfo['url']:
+    if not postInfo['title'] or not postInfo['text'] or not postInfo['url']:
         return jsonify({ 'error': { 'message': 'could not retrieve all parameters.' }})
 
-    #delete any whitespace in titles 
+    #delete any extra whitespace in titles 
     postInfo['title'] = postInfo['title'].strip()
     alist = postInfo['title'].split(" ")
     alist = list(filter(lambda x: False if x == '' else True , alist))
@@ -191,13 +195,16 @@ def addBlogPost():
 @app.route('/api/get-blogpost', methods=['GET'])
 def getBlogPost():
 
-    try:
+    try: 
         #query database for all blog posts
         blogPost = BlogPost.query.all();
-        
+            
+        if not blogPost: 
+            return jsonify({'data': [] })
+
         #list of blogpost info 
         data = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'content': p.content, 'date_posted': p.date_posted} for p in blogPost]
-        
+            
         #remove special characters for URL link 
         for i in range(len(data)): 
             alphanumeric = ""
@@ -211,26 +218,32 @@ def getBlogPost():
 
         #query database for the post ID
         return jsonify({ 'data': data[::-1] })
-    except:
-        return jsonify({ 'error': { 'message': 'Error #009 in get blog-post.' } })
+    except: 
+        return jsonify({ 'error': 'Could not retrieve blogpost data', 'data': [] })
 
 #retrieving single blogpost
 @app.route('/api/single-post', methods=['GET'])
 def getSinglePost(): 
     
-    id = request.headers.get('id')
+    link = request.headers.get('link')
     
-    post = BlogPost.query.filter_by(blog_post_id=id).first()
+    print('**')
+    print('**')
+    print(link)
+    print('**')
+    print('**')
 
-    data = {
-        'id': post.blog_post_id, 
-        'author': post.author,
-        'url': post.url,
-        'title': post.title, 
-        'date': post.date_posted, 
-        'content': post.content, 
-        'comments': post.comments
-    }
+    # post = BlogPost.query.filter_by(blog_post_id=id).first()
+
+    # data = {
+    #     'id': post.blog_post_id, 
+    #     'author': post.author,
+    #     'url': post.url,
+    #     'title': post.title, 
+    #     'date': post.date_posted, 
+    #     'content': post.content, 
+    #     'comments': post.comments
+    # }
 
     return jsonify({ 'success': data })
 

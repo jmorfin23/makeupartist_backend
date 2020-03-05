@@ -30,9 +30,10 @@ class BlogPost(db.Model):
     title = db.Column(db.String(150))
     author = db.Column(db.String(60))
     url = db.Column(db.String(250))
+    path = db.Column(db.String(150))
     content = db.Column(db.Text)
     comments = db.relationship('Comment', backref=db.backref('blogpost', lazy='joined'))
-    date_posted = db.Column(db.DateTime, default=datetime.now().date())
+    date_posted = db.Column(db.String(50))
 
 class Comment(db.Model):
     comment_id = db.Column(db.Integer, primary_key=True)
