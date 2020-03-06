@@ -172,7 +172,7 @@ def addBlogPost():
 
     #convert to data to python object
     postInfo = json.loads(postInfo)
-
+    print(postInfo)
     if not postInfo['title'] or not postInfo['text'] or not postInfo['url']:
         return jsonify({ 'error': { 'message': 'could not retrieve all parameters.' }})
 
@@ -182,8 +182,26 @@ def addBlogPost():
     alist = list(filter(lambda x: False if x == '' else True , alist))
     postInfo['title'] = ' '.join(alist)
 
-    #post blogpost data to database
-    blogPost = BlogPost(title=postInfo['title'], author=ADMIN_NAME, url=postInfo['url'], content=postInfo['text'])
+    #remove special characters for URL link 
+    alphanumeric = ""
+    for character in postInfo['title']:
+        if character.isalnum() or character == ' ':
+            alphanumeric += character
+    alphanumeric = alphanumeric.strip()
+    alist = alphanumeric.split(" ")
+    link = '-'.join(alist)
+    postInfo['link'] = link.lower()
+
+    print(postInfo['link'])
+    #post blogpost data to database #path and date 
+    blogPost = BlogPost(
+        title=postInfo['title'],
+        author=ADMIN_NAME,
+        path= postInfo['link'], 
+        url=postInfo['url'],
+        content=postInfo['text'], 
+        date_posted=postInfo['date']
+        )
     
     #ADD & COMMIT blogpost to database
     db.session.add(blogPost)
@@ -203,19 +221,8 @@ def getBlogPost():
             return jsonify({'data': [] })
 
         #list of blogpost info 
-        data = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'content': p.content, 'date_posted': p.date_posted} for p in blogPost]
+        data = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'path': p.path, 'content': p.content, 'date_posted': p.date_posted} for p in blogPost]
             
-        #remove special characters for URL link 
-        for i in range(len(data)): 
-            alphanumeric = ""
-            for character in data[i]['title']:
-                if character.isalnum() or character == ' ':
-                    alphanumeric += character
-            alphanumeric = alphanumeric.strip()
-            alist = alphanumeric.split(" ")
-            link = '-'.join(alist)
-            data[i]['link'] = link.lower()
-
         #query database for the post ID
         return jsonify({ 'data': data[::-1] })
     except: 
@@ -224,29 +231,52 @@ def getBlogPost():
 #retrieving single blogpost
 @app.route('/api/single-post', methods=['GET'])
 def getSinglePost(): 
-    
-    link = request.headers.get('link')
-    
-    print('**')
-    print('**')
-    print(link)
-    print('**')
-    print('**')
 
-    # post = BlogPost.query.filter_by(blog_post_id=id).first()
+    try: 
 
-    # data = {
-    #     'id': post.blog_post_id, 
-    #     'author': post.author,
-    #     'url': post.url,
-    #     'title': post.title, 
-    #     'date': post.date_posted, 
-    #     'content': post.content, 
-    #     'comments': post.comments
-    # }
+        path = request.headers.get('path')
 
-    return jsonify({ 'success': data })
+        post = BlogPost.query.filter_by(path=path).first()
 
+        data = {
+            'id': post.blog_post_id, 
+            'author': post.author,
+            'url': post.url,
+            'path': post.path, 
+            'title': post.title, 
+            'date': post.date_posted, 
+            'content': post.content, 
+            'comments': post.comments
+        }
+
+        #logic for grabbing next posts 
+        blog = BlogPost.query.all()
+
+        nextPosts = []
+        flag = False
+
+        for i in range(len(blog)):
+            if data['id'] == blog[i].blog_post_id:
+                flag = True
+                continue   
+            
+            nextPosts.append({
+                'id': blog[i].blog_post_id,
+                'title': blog[i].title,
+                'date': blog[i].date_posted,
+                'path': blog[i].path, 
+                'url': blog[i].url
+            })
+            
+            if flag == True and len(nextPosts) >= 3: 
+                break
+            
+            if len(nextPosts) >= 3 and len(blog) != i+2: 
+                nextPosts.pop(0)
+            
+        return jsonify({ 'success': data, 'nextPosts': nextPosts })
+    except: 
+        return jsonify({ 'error': 'Could not retrieve single post', 'nextPosts': [] })
 @app.route('/api/delete-blog-post', methods=['GET'])
 def deleteBlogPost(): 
     print('inside delete blogpost')
