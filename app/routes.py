@@ -310,3 +310,7 @@ def getData():
     response = requests.get(url, auth=auth, headers=headers)
 
     return jsonify({ 'response': response.json() })
+
+@app.route('/api/reset-password', methods=['GET', 'POST'])
+def resetPassword():
+    pass
