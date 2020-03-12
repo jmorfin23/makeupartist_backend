@@ -313,4 +313,12 @@ def getData():
 
 @app.route('/api/reset-password', methods=['GET', 'POST'])
 def resetPassword():
-    pass
+    
+    email = request.headers.get('email')
+    
+    token = user.get_reset_password_token()
+    print('**')
+    print('**')
+    print(token)
+
+    return jsonify({ 'success': 'email received' })
