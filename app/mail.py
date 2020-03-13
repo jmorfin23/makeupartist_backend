@@ -18,12 +18,26 @@ def send_async_email(app, msg):
         mail.send(msg)
 
 
-def sendEmail(name, email, phone, subj, message):
+def sendEmail(name, email, phone, subj, message, sender="app.config['ADMINS'][0]"):
     msg = Message(
         subject=subj,
-        sender=app.config['ADMINS'][0],
+        sender=sender,
         recipients=[email]
     )
     msg.html = render_template('/mail.html', name=name, message=message, phone=phone, email=email, subj=subj)
     
     send_async_email(app, msg)
+
+def sendResetPassword(email, html_body): 
+    msg = Message(
+        subject='Reset Password', 
+        sender='noreply@demo.com', 
+        recipients=[email]
+    )
+    msg.html = html_body
+    send_async_email(app, msg)
+
+
+
+    
+    

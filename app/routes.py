@@ -1,8 +1,9 @@
 from app import app, db
-from flask import jsonify, request
+from flask import jsonify, request, render_template
 from app.models import User, ImagePost, BlogPost, Comment
-from app.mail import sendEmail
+from app.mail import sendEmail, sendResetPassword
 from sensinfo import MAILCHIMP_API_KEY, MAILCHIMP_USERNAME, ADMIN_NAME
+from app.forms import ResetPasswordForm
 import json, requests
 
 
@@ -315,10 +316,41 @@ def getData():
 def resetPassword():
     
     email = request.headers.get('email')
+
+    #verify if email is in our db
+    user = User.query.filter_by(username=email).first()
     
+    if not user: 
+        return jsonify({'error': 'That is not the correct username'})
+
+    print('**')
+    print('**')
+    print(user)
+
     token = user.get_reset_password_token()
+
     print('**')
     print('**')
     print(token)
 
+    sendResetPassword(email, html_body=render_template('/reset_password.html', user=user.username, token=token))
+
     return jsonify({ 'success': 'email received' })
+
+@app.route('/api/change_password', methods=['GET', 'POST'])
+def reset_password():
+
+    #grab new password
+    password = request.headers.get('password')
+    #grab token and check whether its still valid 
+    token = request.headers.get('token')
+    #check whether token is valid 
+    user = User.verify_reset_password_token(token)
+
+    if not user: 
+        return jsonify({'error': 'Token has expired, try again.'})
+
+    user.set_password(password)
+    db.session.commit()
+
+    return jsonify({'success': 'Success! Password was reset.'})
