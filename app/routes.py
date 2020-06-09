@@ -106,7 +106,7 @@ def post():
         #return new images array
         images = ImagePost.query.all()
 
-        return jsonify({ 'success': 'Image saved', 'posted_image': {'url': post.url, 'type': post.type}, 'status': True, 'newLength':  len(images)})
+        return jsonify({ 'success': 'Image saved', 'posted_image': {'id': post.post_id, 'url': post.url, 'type': post.type}, 'status': True, 'newLength':  len(images)})
     except:
         return jsonify({ 'error': 'Error #004 in save-image.', 'status': False})
 
@@ -314,28 +314,20 @@ def getData():
 
 @app.route('/api/reset-password', methods=['GET', 'POST'])
 def resetPassword():
-    
+    print('inside reset password')
     email = request.headers.get('email')
 
     #verify if email is in our db
     user = User.query.filter_by(username=email).first()
     
     if not user: 
-        return jsonify({'error': 'That is not the correct username'})
-
-    print('**')
-    print('**')
-    print(user)
-
+        return jsonify({'error': 'Invalid email, try again.'})
+    
     token = user.get_reset_password_token()
-
-    print('**')
-    print('**')
-    print(token)
 
     sendResetPassword(email, html_body=render_template('/reset_password.html', user=user.username, token=token))
 
-    return jsonify({ 'success': 'email received' })
+    return jsonify({ 'success': 'Check your email to reset your password' })
 
 @app.route('/api/change_password', methods=['GET', 'POST'])
 def reset_password():
