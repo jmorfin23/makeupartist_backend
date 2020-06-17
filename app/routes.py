@@ -121,9 +121,6 @@ def retrieveImage():
 
         #make a list of dictionaries with url and type
         data = [{'url': i.url, 'type': i.type, 'id': i.post_id} for i in images]
-
-        print('**')
-        print(data)
         
         return jsonify({ 'data': data[::-1] })
     except:
@@ -173,7 +170,7 @@ def addBlogPost():
 
     #convert to data to python object
     postInfo = json.loads(postInfo)
-    print(postInfo)
+
     if not postInfo['title'] or not postInfo['text'] or not postInfo['url']:
         return jsonify({ 'error': { 'message': 'could not retrieve all parameters.' }})
 
@@ -193,7 +190,6 @@ def addBlogPost():
     link = '-'.join(alist)
     postInfo['link'] = link.lower()
 
-    print(postInfo['link'])
     #post blogpost data to database #path and date 
     blogPost = BlogPost(
         title=postInfo['title'],
@@ -223,7 +219,7 @@ def getBlogPost():
 
         #list of blogpost info 
         data = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'path': p.path, 'content': p.content, 'date_posted': p.date_posted} for p in blogPost]
-            
+        
         #query database for the post ID
         return jsonify({ 'data': data[::-1] })
     except: 
@@ -280,7 +276,6 @@ def getSinglePost():
         return jsonify({ 'error': 'Could not retrieve single post', 'nextPosts': [] })
 @app.route('/api/delete-blog-post', methods=['GET'])
 def deleteBlogPost(): 
-    print('inside delete blogpost')
 
     id = request.headers.get('id')
 
@@ -314,7 +309,7 @@ def getData():
 
 @app.route('/api/reset-password', methods=['GET', 'POST'])
 def resetPassword():
-    print('inside reset password')
+
     email = request.headers.get('email')
 
     #verify if email is in our db
