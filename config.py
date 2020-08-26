@@ -16,3 +16,9 @@ class Config(object):
     MAIL_USERNAME = 'jmorfin776@gmail.com'
     MAIL_PASSWORD = 'rvabsqyioxbnxcmz'
     ADMINS = ['jmorfin776@gmail.com']
+
+
+    #Variables for MailChimp API: 
+    MAILCHIMP_API_KEY = 'c26891e9bec27196458e5092bd3635df-us4'
+    MAILCHIMP_USERNAME = 'jmorfin776'
+    ADMIN_NAME='Kathryn Stevens'
