@@ -14,7 +14,6 @@ from time import time
 @app.route('/')
 @app.route('/index')
 def index():
-    print(time())
     return "This is the make-up artist flask backend."
 
 
@@ -91,7 +90,6 @@ def admin_register():
         # return jsonify({ 'error': { 'message': "Error #002 in registering.", 'data': { 'status': False } } })
 # ================================================= #
 
-
 #contact page route
 @app.route('/api/contact', methods=['POST'])
 def contact():
@@ -134,9 +132,6 @@ def post():
         return jsonify({ 'success': 'Image saved', 'posted_image': {'id': post.post_id, 'url': post.url, 'type': post.type}, 'status': True, 'newLength':  len(images)})
     except:
         return jsonify({ 'error': 'Error #004 in save-image.', 'status': False})
-
-
-
 
 # Retrieve all images
 @app.route('/api/retrieve-images', methods=['GET', 'POST'])
@@ -280,8 +275,6 @@ def get_requested_number_blogpost():
     except:
         return jsonify({'status': 'error', 'data': [], 'message': '', 'error': 'Could not get requested posts'})
 
-
-
 #retrieving single blogpost
 @app.route('/api/single-post', methods=['GET'])
 def getSinglePost(): 
@@ -356,6 +349,25 @@ def deleteBlogPost():
         return jsonify({ 'status': 'ok', 'data': True , 'message': 'blog post deleted', 'error': '' })
     except: 
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot delete post' })
+
+@app.route('/api/get-next-posts', methods=['GET'])
+def getNextPosts(): 
+    
+    # try: 
+
+    page_num = int(request.headers.get('page_num'))
+    posts_per_page = int(request.headers.get('posts_per_page'))
+   
+    if not page_num or not posts_per_page: 
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot get page number or posts per page number' })
+
+    posts = BlogPost.query.order_by(desc(BlogPost.blog_post_id)).paginate(page_num, posts_per_page, False)
+
+    blog_posts = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'path': p.path, 'content': p.content, 'date_posted': p.date_posted} for p in posts.items]
+    
+    return jsonify({ 'status': 'ok', 'data': {'posts': blog_posts, 'info': { 'currentPage': page_num, 'has_next': posts.has_next, 'has_prev': posts.has_prev, 'next_num': posts.next_num, 'prev_num': posts.prev_num} } , 'message': 'blog post deleted', 'error': '' })
+    # except: 
+    #     return jsonify({ 'status': 'error', 'data': [], 'message': 'blog post deleted', 'error': 'Cannot retrieve posts' })
 
 @app.route('/api/mailchimp', methods=['GET'])
 def getData(): 
