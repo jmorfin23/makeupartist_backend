@@ -7,9 +7,7 @@ from app.forms import ResetPasswordForm
 import json, requests
 import jwt
 from time import time 
-
-
-
+from slugify import slugify
 
 @app.route('/')
 @app.route('/index')
@@ -102,36 +100,46 @@ def contact():
 
         sendEmail(name=name, email=email, phone=phone, subj=subject, message=message)
 
-        return jsonify({ 'Success': 'message sent'})
+        return jsonify({ 'status': 'ok', 'data': [], 'message': 'Your message was sent, thank you.', 'error': '' })
     except:
-        return jsonify({ 'error': { 'message:': 'Error #003 in contact.' } })
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Your message did not send. Try again.' })
 
 #saving an image
 @app.route('/api/image-save', methods=['POST'])
 def post():
-
     try:
-        imageInfo = request.headers.get('imageInfo')
-      
+        token = request.headers.get('token')
+        imageInfo = request.headers.get('info')
+        
         #convert to data to python object
         imageInfo = json.loads(imageInfo)
         
-        user = User.query.filter_by(username=imageInfo['admin']).first()
+        data = jwt.decode(
+            token,
+            app.config['SECRET_KEY'],
+            algorithm=['HS256'] # got a signature has expired 
+        )
+        
+        # Check if token is expired 
+        if data['exp'] < time(): 
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token is expired' })
+
+        user = User.query.filter_by(id=data['user_id']).first()
 
         if not user:
-            return jsonify({ 'error': '#004 User was not found', 'status': False })
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'User was not found' })
 
         post = ImagePost(user_id=user.id, type=imageInfo['uploadType'].lower(), url=imageInfo['cloudURL'])
-       
+        
         db.session.add(post)
         db.session.commit()
-    
+
         #return new images array
         images = ImagePost.query.all()
 
-        return jsonify({ 'success': 'Image saved', 'posted_image': {'id': post.post_id, 'url': post.url, 'type': post.type}, 'status': True, 'newLength':  len(images)})
+        return jsonify({ 'status': 'ok', 'data': {'id': post.post_id, 'type': post.type, 'url': post.url}, 'message': 'Image added', 'error': '' })
     except:
-        return jsonify({ 'error': 'Error #004 in save-image.', 'status': False})
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Token expired' })
 
 # Retrieve all images
 @app.route('/api/retrieve-images', methods=['GET', 'POST'])
@@ -151,27 +159,31 @@ def retrieveImage():
 def deleteImage():
 
     try:
-        # Retrieve id from headers
         id = request.headers.get('id')
+        token = request.headers.get('token')
 
-        #  Get image to delete
+        #validate token 
+        data = jwt.decode(
+            token,
+            app.config['SECRET_KEY'],
+            algorithm=['HS256'] # got a signature has expired 
+        )
+        
+        # Check if token is expired 
+        if data['exp'] < time(): 
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token is expired' })
+
         d = ImagePost.query.filter_by(post_id=id).first()
         
         if not d:
-            return jsonify({ 'error': 'Could not retrieve that image from the database.', 'status': False})
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot find image' })
 
         db.session.delete(d)
         db.session.commit()
         
-        images = ImagePost.query.all()
-        print('inside image delete')
-        print('inside image delete')
-        print('inside image delete')
-        print('inside image delete')
-        print('inside image delete')
-        return jsonify({ 'status': True, 'deletedImage': d.url, 'newLength':  len(images) })
+        return jsonify({ 'status': 'ok', 'data': { 'id': d.post_id }, 'message': 'Image deleted', 'error': '' })
     except:
-        return jsonify({ 'error': 'Could not delete image from database.', 'status': False, 'newLength': len(images) })
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Token expired or another issue' })
 
 #subscribing to newsletter 
 @app.route('/api/sub-newsletter', methods=['POST'])
@@ -188,34 +200,28 @@ def newsletter():
 #this needs to be addressed. 
 @app.route('/api/add-blogpost', methods=['GET', 'POST'])
 def addBlogPost():
-    try: 
-        # Retrieve blog post data from headers
+    try:    
+        token = request.headers.get('token')
         postInfo = request.headers.get('postInfo')
-
+        
+        if not token or not postInfo: 
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token is expired or cannot get post info' })
+            
         # Convert python object
         postInfo = json.loads(postInfo)
 
-        if not postInfo['title'] or not postInfo['text'] or not postInfo['url']:
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot get all required parameters' })
-
-        # ** implement flask - slugify ** 
-        #delete any extra whitespace in titles 
-        postInfo['title'] = postInfo['title'].strip()
-        alist = postInfo['title'].split(" ")
-        alist = list(filter(lambda x: False if x == '' else True , alist))
-        postInfo['title'] = ' '.join(alist)
-
-        #remove special characters for URL link 
-        alphanumeric = ""
-        for character in postInfo['title']:
-            if character.isalnum() or character == ' ':
-                alphanumeric += character
-        alphanumeric = alphanumeric.strip()
-        alist = alphanumeric.split(" ")
-        link = '-'.join(alist)
-        postInfo['link'] = link.lower()
-
-        #post blogpost data to database #path and date 
+        data = jwt.decode(
+            token,
+            app.config['SECRET_KEY'],
+            algorithm=['HS256'] 
+        )
+        
+        # Check if token is expired 
+        if data['exp'] < time(): 
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token is expired' })
+        
+        postInfo['link'] = slugify(postInfo['title'])
+        
         blogPost = BlogPost(
             title=postInfo['title'],
             author=app.config['ADMIN_NAME'],
@@ -227,9 +233,10 @@ def addBlogPost():
         
         db.session.add(blogPost)
         db.session.commit()
+        
+        post = BlogPost.query.order_by(desc(BlogPost.blog_post_id)).first()
 
-        # return jsonify({ 'success': {'message': 'successfully posted blog post.' }})
-        return jsonify({ 'status': 'ok', 'data': [], 'message': 'Blog post is posted', 'error': '' })
+        return jsonify({ 'status': 'ok', 'data': {'id': post.blog_post_id, 'title': post.title, 'author': post.author, 'url': post.url, 'path': post.path, 'content': post.content, 'date_posted': post.date_posted} , 'message': 'Blog post is posted', 'error': '' })
     except: 
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot add blog post' })
     
@@ -332,42 +339,33 @@ def getSinglePost():
 @app.route('/api/delete-blog-post', methods=['GET'])
 def deleteBlogPost(): 
     try: 
-
         id = request.headers.get('id')
 
-        if not id: 
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Unable to retrieve id' })
-        
         post = BlogPost.query.filter_by(blog_post_id=id).first()
 
-        if not post: 
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'could not find post to delete' })
-        
-        # db.session.delete(post)
-        # db.session.commit()
+        db.session.delete(post)
+        db.session.commit()
 
-        return jsonify({ 'status': 'ok', 'data': True , 'message': 'blog post deleted', 'error': '' })
+        return jsonify({ 'status': 'ok', 'data': post.blog_post_id , 'message': 'blog post deleted', 'error': '' })
     except: 
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot delete post' })
 
 @app.route('/api/get-next-posts', methods=['GET'])
 def getNextPosts(): 
+    try: 
+        page_num = int(request.headers.get('page_num'))
+        posts_per_page = int(request.headers.get('posts_per_page'))
     
-    # try: 
+        if not page_num or not posts_per_page: 
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot get page number or posts per page number' })
 
-    page_num = int(request.headers.get('page_num'))
-    posts_per_page = int(request.headers.get('posts_per_page'))
-   
-    if not page_num or not posts_per_page: 
-        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot get page number or posts per page number' })
+        posts = BlogPost.query.order_by(desc(BlogPost.blog_post_id)).paginate(page_num, posts_per_page, False)
+        
+        blog_posts = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'path': p.path, 'content': p.content, 'date_posted': p.date_posted} for p in posts.items]
 
-    posts = BlogPost.query.order_by(desc(BlogPost.blog_post_id)).paginate(page_num, posts_per_page, False)
-
-    blog_posts = [{'id': p.blog_post_id, 'title': p.title, 'author': p.author, 'url': p.url, 'path': p.path, 'content': p.content, 'date_posted': p.date_posted} for p in posts.items]
-    
-    return jsonify({ 'status': 'ok', 'data': {'posts': blog_posts, 'info': { 'currentPage': page_num, 'has_next': posts.has_next, 'has_prev': posts.has_prev, 'next_num': posts.next_num, 'prev_num': posts.prev_num} } , 'message': 'blog post deleted', 'error': '' })
-    # except: 
-    #     return jsonify({ 'status': 'error', 'data': [], 'message': 'blog post deleted', 'error': 'Cannot retrieve posts' })
+        return jsonify({ 'status': 'ok', 'data': {'posts': blog_posts, 'info': { 'currentPage': page_num, 'has_next': posts.has_next, 'has_prev': posts.has_prev, 'next_num': posts.next_num, 'prev_num': posts.prev_num} } , 'message': 'blog post deleted', 'error': '' })
+    except: 
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot retrieve posts' })
 
 @app.route('/api/mailchimp', methods=['GET'])
 def getData(): 
@@ -389,34 +387,40 @@ def getData():
 @app.route('/api/reset-password', methods=['GET', 'POST'])
 def resetPassword():
 
-    email = request.headers.get('email')
+    try: 
+        email = request.headers.get('email')
 
-    #verify if email is in our db
-    user = User.query.filter_by(username=email).first()
-    
-    if not user: 
-        return jsonify({'error': 'Invalid email, try again.'})
-    
-    token = user.get_reset_password_token()
+        #verify if email is in our db
+        user = User.query.filter_by(username=email).first()
+        
+        if not user: 
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'invalid email' })
+        
+        token = user.get_reset_password_token()
 
-    sendResetPassword(email, html_body=render_template('/reset_password.html', user=user.username, token=token))
+        sendResetPassword(email, html_body=render_template('/reset_password.html', user=user.username, token=token))
 
-    return jsonify({ 'success': 'Check your email to reset your password' })
+        return jsonify({ 'status': 'ok', 'data': [], 'message': 'Check your email to reset your password', 'error': '' })
+    except: 
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot reset password'})
 
 @app.route('/api/change_password', methods=['GET', 'POST'])
 def reset_password():
+    try: 
+        #grab new password
+        password = request.headers.get('password')
+        #grab token and check whether its still valid 
+        token = request.headers.get('token')
+        #check whether token is valid 
+        user = User.verify_reset_password_token(token)
 
-    #grab new password
-    password = request.headers.get('password')
-    #grab token and check whether its still valid 
-    token = request.headers.get('token')
-    #check whether token is valid 
-    user = User.verify_reset_password_token(token)
+        if not user: 
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot reset password'})
 
-    if not user: 
-        return jsonify({'error': 'Token has expired, try again.'})
+        user.set_password(password)
+        db.session.commit()
 
-    user.set_password(password)
-    db.session.commit()
+        return jsonify({ 'status': 'ok', 'data': [], 'message': 'Success, password was reset', 'error': ''})
+    except: 
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot reset password'})
 
-    return jsonify({'success': 'Success! Password was reset.'})

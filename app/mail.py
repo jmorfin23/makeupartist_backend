@@ -4,14 +4,14 @@ from flask import render_template
 from threading import Thread
 
 
-#create a new thread for sending email/
+# EMAIL THREAD
 def async1(f):
     def wrapper(*args, **kwargs):
         thr = Thread(target=f, args=args, kwargs=kwargs)
         thr.start()
     return wrapper
 
-#sending email with new thread/
+# SEND EMAIL 
 @async1
 def send_async_email(app, msg):
     with app.app_context():
@@ -22,7 +22,7 @@ def sendEmail(name, email, phone, subj, message, sender="app.config['ADMINS'][0]
     msg = Message(
         subject=subj,
         sender=sender,
-        recipients=[email]
+        recipients=[app.config['ADMINS'][0]]
     )
     msg.html = render_template('/mail.html', name=name, message=message, phone=phone, email=email, subj=subj)
     
@@ -31,7 +31,7 @@ def sendEmail(name, email, phone, subj, message, sender="app.config['ADMINS'][0]
 def sendResetPassword(email, html_body): 
     msg = Message(
         subject='Reset Password', 
-        sender='noreply@demo.com', 
+        sender=app.config['ADMINS'][0], 
         recipients=[email]
     )
     msg.html = html_body
