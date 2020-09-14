@@ -22,7 +22,7 @@ def sendEmail(name, email, phone, subj, message, sender="app.config['ADMINS']"):
     msg = Message(
         subject=subj,
         sender=sender,
-        recipients=[app.config['ADMINS']
+        recipients=app.config['ADMINS']
     )
     msg.html = render_template('/mail.html', name=name, message=message, phone=phone, email=email, subj=subj)
     
