@@ -190,12 +190,14 @@ def deleteImage():
 def newsletter():
 
     try:
-        #grab email for newletter signup
         email = request.headers.get('email')
+        
+        # TODO: WHEN EMAIL LIST IS SET UP 
 
-        return jsonify({ 'success': { 'message': 'You have successfully subscribed to my Newsletter! Thank you.' }})
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'There is currently maintence being done, try again later.' })
+        # return jsonify({ 'status': 'ok', 'data': [], 'message': 'You have subscribed! Thank you.', 'error': '' })
     except:
-        return jsonify({ 'error': { 'message': 'Error #007 could not subscribe to newletter.' } })
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot subscribe to newsletter.' })
 
 #this needs to be addressed. 
 @app.route('/api/add-blogpost', methods=['GET', 'POST'])
