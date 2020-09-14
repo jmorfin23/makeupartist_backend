@@ -6,7 +6,6 @@ from app.mail import sendEmail, sendResetPassword
 from app.forms import ResetPasswordForm
 import json, requests, os
 import jwt
-import boto3
 from time import time 
 from slugify import slugify
 
