@@ -4,14 +4,21 @@ from sqlalchemy import desc
 from app.models import User, ImagePost, BlogPost, Comment
 from app.mail import sendEmail, sendResetPassword
 from app.forms import ResetPasswordForm
-import json, requests
+import json, requests, os
 import jwt
+import boto3
 from time import time 
 from slugify import slugify
+
 
 @app.route('/')
 @app.route('/index')
 def index():
+    # Let's use Amazon S3
+    # s3 = boto3.resource('s3')
+    # # Print out bucket names
+    # for bucket in s3.buckets.all():
+    #     print(bucket.name)
     return "This is the make-up artist flask backend."
 
 
@@ -149,10 +156,10 @@ def retrieveImage():
 
         #make a list of dictionaries with url and type
         data = [{'url': i.url, 'type': i.type, 'id': i.post_id} for i in images]
+
         return jsonify({'status': 'ok', 'data': data[::-1], 'message': '', 'error': '.' })
-        return jsonify({ 'data': data[::-1] })
     except:
-        return jsonify({ 'error': { 'message': 'Error #005 retrieving posts.' }, 'data': [] })
+        return jsonify({'status': 'error', 'data': [], 'message': '', 'error': 'Cannot retrieve images' })
 
 #deleting images 
 @app.route('/api/image-delete', methods=['GET', 'POST'])
