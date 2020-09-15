@@ -3,11 +3,12 @@ import os
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY')
     
+    # DB 
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     DEBUG = False
 
-    #setting up all email config variables
+    #EMAIL 
     MAIL_SERVER = os.environ.get('MAIL_SERVER')
     MAIL_PORT = 587
     MAIL_USE_TLS = 1
@@ -15,7 +16,11 @@ class Config(object):
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = os.environ.get('ADMINS')
 
-    #Variables for MailChimp API: 
+    # MAILCHIMP
     MAILCHIMP_API_KEY = os.environ.get('MAILCHIMP_API_KEY')
     MAILCHIMP_USERNAME = os.environ.get('MAILCHIMP_USERNAME')
     ADMIN_NAME = os.environ.get('ADMIN_NAME')
+
+    #CLIENT
+    CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL')
+    CLOUDINARY_UPLOAD_PRESET = os.environ.get('CLOUDINARY_UPLOAD_PRESET')

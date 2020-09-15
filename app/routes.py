@@ -20,7 +20,12 @@ def index():
     #     print(bucket.name)
     return "This is the make-up artist flask backend."
 
-
+@app.route('/api/get-variables')
+def get_variables(): 
+    try: 
+        return jsonify({ 'status': 'ok', 'data': {'SECRET_KEY': app.config['SECRET_KEY'], 'CLOUDINARY_URL': app.config['CLOUDINARY_URL'], 'CLOUDINARY_UPLOAD_PRESET': app.config['CLOUDINARY_UPLOAD_PRESET']}, 'message': '', 'error': 'Cannot authouthorize user' })
+    except: 
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot get variables' })
 @app.route('/api/admin-auth', methods=['GET', 'POST'])
 def user_auth():
     try: 
