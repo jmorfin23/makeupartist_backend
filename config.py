@@ -8,7 +8,7 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     DEBUG = False
 
-    #EMAIL 
+    # EMAIL 
     MAIL_SERVER = os.environ.get('MAIL_SERVER')
     MAIL_PORT = 587
     MAIL_USE_TLS = 1
@@ -21,6 +21,7 @@ class Config(object):
     MAILCHIMP_USERNAME = os.environ.get('MAILCHIMP_USERNAME')
     ADMIN_NAME = os.environ.get('ADMIN_NAME')
 
-    #CLIENT
-    CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL')
-    CLOUDINARY_UPLOAD_PRESET = os.environ.get('CLOUDINARY_UPLOAD_PRESET')
+    # AWS
+    S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME')
+    S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY')
+    S3_SECRET_KEY = os.environ.get('S3_SECRET_KEY')

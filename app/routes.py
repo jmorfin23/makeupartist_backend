@@ -1,31 +1,24 @@
 from app import app, db
-from flask import jsonify, request, render_template
-from sqlalchemy import desc
+from flask import jsonify, request, render_template, url_for
+# --- Method / Table imports --- #
 from app.models import User, ImagePost, BlogPost, Comment
 from app.mail import sendEmail, sendResetPassword
 from app.forms import ResetPasswordForm
-import json, requests, os
-import jwt
+from app.upload import uploadToS3
+# ----------------------------------
+import json, requests, os, jwt, boto3, io 
+from werkzeug.utils import secure_filename
+from sqlalchemy import desc
 from time import time 
 from slugify import slugify
+
 
 
 @app.route('/')
 @app.route('/index')
 def index():
-    # Let's use Amazon S3
-    # s3 = boto3.resource('s3')
-    # # Print out bucket names
-    # for bucket in s3.buckets.all():
-    #     print(bucket.name)
-    return "This is the make-up artist flask backend."
+    return "kathryn Stevens makeup artist backend"
 
-@app.route('/api/get-variables')
-def get_variables(): 
-    try: 
-        return jsonify({ 'status': 'ok', 'data': {'SECRET_KEY': app.config['SECRET_KEY'], 'CLOUDINARY_URL': app.config['CLOUDINARY_URL'], 'CLOUDINARY_UPLOAD_PRESET': app.config['CLOUDINARY_UPLOAD_PRESET']}, 'message': '', 'error': 'Cannot authouthorize user' })
-    except: 
-        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot get variables' })
 @app.route('/api/admin-auth', methods=['GET', 'POST'])
 def user_auth():
     try: 
@@ -37,67 +30,57 @@ def user_auth():
             return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
 
         return jsonify({ 'status': 'expired', 'data': False, 'message': '', 'error': 'token expired' })
-        return jsonify({ 'status': 'ok', 'data': [], 'message': '', 'error': '' })
     except: 
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot authouthorize user' })
 
 @app.route('/api/admin-login', methods=['GET', 'POST'])
 def admin_login():
-
     try:
-        # Retrieve token from headers
-        token = request.headers.get('token')
+        data = json.loads(request.data)
 
-        # verify token 
-        data = jwt.decode(
-            token,
-            app.config['SECRET_KEY'],
-            algorithm=['HS256']
-        )
-        
         # query db to get user and check pass
         user = User.query.filter_by(username=data['username']).first()
 
         if user is None or not user.check_password(data['password']):
             return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Invalid credentials' })
-            # return jsonify({ 'error': 'Error #002: Invalid credentials', 'data': { 'status': False } })
         
         return jsonify({ 'status': 'ok', 'data': user.get_token(), 'message': '', 'error': '' })
-        # return jsonify({ 'success': 'Admin logged in', 'data': data })
     except:
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot log in' })
-        # return jsonify({ 'error': "Error #001 in login.", 'data': { 'status': False }})
-# ================================================= #
-#use this to register admins username and password
-#tokens?
-@app.route('/api/admin-register', methods=['GET', 'POST'])
-def admin_register():
 
-    try:
+# ================================================= #
+# TODO: DELETE, FOR TESTING PURPOSES 
+#@app.route('/api/admin-register', methods=['POST', 'GET'])
+#def admin_register():
+
+    # try:
         # Get token
-        token = request.headers.get('token')
+        # token = request.headers.get('token')
 
-        # Decode token 
-        data = jwt.decode(
-            token,
-            app.config['SECRET_KEY'],
-            algorithm=['HS256']
-        )
-
+        # # Decode token 
+        # data = jwt.decode(
+        #     token,
+        #     app.config['SECRET_KEY'],
+        #     algorithm=['HS256']
+        # )
+#    data = json.loads(request.data)
+    
         # Add user to db 
-        user = User(username=data['username'])
-        user.set_password(data['password'])
+        # user = User(username=data['username'])
+        # user.set_password(data['password'])
 
-        # Update db
-        db.session.add(user)
+        # # Update db
+        # db.session.add(user)
 
-        db.session.commit()
-        return jsonify({ 'status': 'ok', 'data': user.get_token(), 'message': '', 'error': '' })
+        # db.session.commit()
+
+#    return jsonify({ 'status': 'ok', 'data': [], 'message': '', 'error': '' })
+    # return jsonify({ 'status': 'ok', 'data': user.get_token(), 'message': '', 'error': '' })
         # return jsonify({ 'success': 'Admin Registered', 'data': { 'status': False } })
-    except:
-        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot register user' })
+    # except:
+    #     return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot register user' })
         # return jsonify({ 'error': { 'message': "Error #002 in registering.", 'data': { 'status': False } } })
-# ================================================= #
+# # ================================================= #
 
 #contact page route
 @app.route('/api/contact', methods=['POST'])
@@ -120,33 +103,31 @@ def contact():
 def post():
     try:
         token = request.headers.get('token')
-        imageInfo = request.headers.get('info')
         
-        #convert to data to python object
-        imageInfo = json.loads(imageInfo)
-        
-        data = jwt.decode(
-            token,
-            app.config['SECRET_KEY'],
-            algorithm=['HS256'] # got a signature has expired 
-        )
-        
-        # Check if token is expired 
-        if data['exp'] < time(): 
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token is expired' })
-
-        user = User.query.filter_by(id=data['user_id']).first()
+        user = User.verify_token(token)
 
         if not user:
             return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'User was not found' })
 
-        post = ImagePost(user_id=user.id, type=imageInfo['uploadType'].lower(), url=imageInfo['cloudURL'])
+        # Get image data 
+        image = request.files['file']
+        filename = secure_filename(image.filename)
+        bucket_name = app.config['S3_BUCKET_NAME']
+
+        # Send to S3 
+        status = uploadToS3(image, filename, bucket_name)
         
+        if not status: 
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot upload image to cloud.' })
+            
+        # Save url in db w/ upload type 
+        image_url = f'https://{bucket_name}.s3.amazonaws.com/{filename}'
+        upload_type = request.files['upload_type'].lower()
+        
+        post = ImagePost(user_id=user.id, type=upload_type, url=image_url)
+            
         db.session.add(post)
         db.session.commit()
-
-        #return new images array
-        images = ImagePost.query.all()
 
         return jsonify({ 'status': 'ok', 'data': {'id': post.post_id, 'type': post.type, 'url': post.url}, 'message': 'Image added', 'error': '' })
     except:
@@ -173,30 +154,24 @@ def deleteImage():
         id = request.headers.get('id')
         token = request.headers.get('token')
 
-        #validate token 
-        data = jwt.decode(
-            token,
-            app.config['SECRET_KEY'],
-            algorithm=['HS256'] # got a signature has expired 
-        )
+        user = User.verify_token(token)
         
-        # Check if token is expired 
-        if data['exp'] < time(): 
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token is expired' })
+        if not user:
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
 
-        d = ImagePost.query.filter_by(post_id=id).first()
+        image = ImagePost.query.filter_by(post_id=id).first()
         
-        if not d:
+        if not image:
             return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot find image' })
 
-        db.session.delete(d)
+        db.session.delete(image)
         db.session.commit()
         
-        return jsonify({ 'status': 'ok', 'data': { 'id': d.post_id }, 'message': 'Image deleted', 'error': '' })
+        return jsonify({ 'status': 'ok', 'data': { 'id': image.post_id }, 'message': 'Image deleted', 'error': '' })
     except:
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Token expired or another issue' })
 
-#subscribing to newsletter 
+# Subscribe to newsletter 
 @app.route('/api/sub-newsletter', methods=['POST'])
 def newsletter():
 
@@ -210,38 +185,43 @@ def newsletter():
     except:
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot subscribe to newsletter.' })
 
-#this needs to be addressed. 
 @app.route('/api/add-blogpost', methods=['GET', 'POST'])
 def addBlogPost():
     try:    
         token = request.headers.get('token')
-        postInfo = request.headers.get('postInfo')
-        
-        if not token or not postInfo: 
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token is expired or cannot get post info' })
-            
-        # Convert python object
-        postInfo = json.loads(postInfo)
 
-        data = jwt.decode(
-            token,
-            app.config['SECRET_KEY'],
-            algorithm=['HS256'] 
-        )
+        user = User.verify_token(token)
         
-        # Check if token is expired 
-        if data['exp'] < time(): 
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token is expired' })
+        if not user:
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
+
+        # Send image to S3
+        image = request.files['image']
+        filename = secure_filename(image.filename)
+        bucket_name = app.config['S3_BUCKET_NAME']
+
+        status = uploadToS3(image, filename, bucket_name)
+    
+        if not status: 
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot upload image to cloud.' })
         
-        postInfo['link'] = slugify(postInfo['title'])
+        # Save url in db w/ upload type 
+        image_url = f'https://{bucket_name}.s3.amazonaws.com/{filename}'
+
+        title = request.files['title']
+        date = request.files['date']
+        text = request.files['text']
+
+        # Create slug from post title 
+        created_path = slugify(title)
         
         blogPost = BlogPost(
-            title=postInfo['title'],
+            title=title,
             author=app.config['ADMIN_NAME'],
-            path= postInfo['link'], 
-            url=postInfo['url'],
-            content=postInfo['text'], 
-            date_posted=postInfo['date']
+            path=created_path, 
+            url= image_url,
+            content=text, 
+            date_posted=date
         )
         
         db.session.add(blogPost)
@@ -352,7 +332,13 @@ def getSinglePost():
 @app.route('/api/delete-blog-post', methods=['GET'])
 def deleteBlogPost(): 
     try: 
+        token = request.headers.get('token')
         id = request.headers.get('id')
+
+        user = User.verify_token(token)
+        
+        if not user:
+            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
 
         post = BlogPost.query.filter_by(blog_post_id=id).first()
 
@@ -382,6 +368,7 @@ def getNextPosts():
 
 @app.route('/api/mailchimp', methods=['GET'])
 def getData(): 
+    #TODO: when setup configured 
     try: 
         #testing still required for this route
         url = 'https://us4.api.mailchimp.com/3.0/automations/' #50e64ce39f/emails/6376bb24f5/queue
@@ -390,7 +377,7 @@ def getData():
 
         headers = {'Content-Type': 'application/json'}
 
-        # body = {'email_address': 'jmorfin7577@yahoo.com'}
+        # body = {'email_address': myyahooemail}
 
         response = requests.get(url, auth=auth, headers=headers)
 
@@ -420,11 +407,10 @@ def resetPassword():
 @app.route('/api/change_password', methods=['GET', 'POST'])
 def reset_password():
     try: 
-        #grab new password
+        
         password = request.headers.get('password')
-        #grab token and check whether its still valid 
         token = request.headers.get('token')
-        #check whether token is valid 
+        
         user = User.verify_reset_password_token(token)
 
         if not user: 
