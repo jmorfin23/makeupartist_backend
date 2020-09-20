@@ -13,11 +13,11 @@ from time import time
 from slugify import slugify
 
 
-
 @app.route('/')
 @app.route('/index')
 def index():
     return "kathryn Stevens makeup artist backend"
+
 
 @app.route('/api/admin-auth', methods=['GET', 'POST'])
 def user_auth():
@@ -47,40 +47,6 @@ def admin_login():
         return jsonify({ 'status': 'ok', 'data': user.get_token(), 'message': '', 'error': '' })
     except:
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot log in' })
-
-# ================================================= #
-# TODO: DELETE, FOR TESTING PURPOSES 
-#@app.route('/api/admin-register', methods=['POST', 'GET'])
-#def admin_register():
-
-    # try:
-        # Get token
-        # token = request.headers.get('token')
-
-        # # Decode token 
-        # data = jwt.decode(
-        #     token,
-        #     app.config['SECRET_KEY'],
-        #     algorithm=['HS256']
-        # )
-#    data = json.loads(request.data)
-    
-        # Add user to db 
-        # user = User(username=data['username'])
-        # user.set_password(data['password'])
-
-        # # Update db
-        # db.session.add(user)
-
-        # db.session.commit()
-
-#    return jsonify({ 'status': 'ok', 'data': [], 'message': '', 'error': '' })
-    # return jsonify({ 'status': 'ok', 'data': user.get_token(), 'message': '', 'error': '' })
-        # return jsonify({ 'success': 'Admin Registered', 'data': { 'status': False } })
-    # except:
-    #     return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot register user' })
-        # return jsonify({ 'error': { 'message': "Error #002 in registering.", 'data': { 'status': False } } })
-# # ================================================= #
 
 #contact page route
 @app.route('/api/contact', methods=['POST'])
@@ -275,7 +241,7 @@ def get_requested_number_blogpost():
     except:
         return jsonify({'status': 'error', 'data': [], 'message': '', 'error': 'Could not get requested posts'})
 
-#retrieving single blogpost
+# Get single blogpost
 @app.route('/api/single-post', methods=['GET'])
 def getSinglePost(): 
     try: 
@@ -366,31 +332,12 @@ def getNextPosts():
     except: 
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot retrieve posts' })
 
-@app.route('/api/mailchimp', methods=['GET'])
-def getData(): 
-    #TODO: when setup configured 
-    try: 
-        #testing still required for this route
-        url = 'https://us4.api.mailchimp.com/3.0/automations/' #50e64ce39f/emails/6376bb24f5/queue
-
-        auth = (app.config['MAILCHIMP_USERNAME'], app.config['MAILCHIMP_API_KEY'])
-
-        headers = {'Content-Type': 'application/json'}
-
-        # body = {'email_address': myyahooemail}
-
-        response = requests.get(url, auth=auth, headers=headers)
-
-        return jsonify({ 'response': response.json() })
-    except:
-        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'could not add to mailchip' })
 @app.route('/api/reset-password', methods=['GET', 'POST'])
 def resetPassword():
 
     try: 
         email = request.headers.get('email')
 
-        #verify if email is in our db
         user = User.query.filter_by(username=email).first()
         
         if not user: 
