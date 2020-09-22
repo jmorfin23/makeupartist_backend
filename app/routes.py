@@ -22,14 +22,17 @@ def index():
 @app.route('/api/admin-auth', methods=['GET', 'POST'])
 def user_auth():
     try: 
-        token = request.headers.get('token')
+        token = request.headers.get("Authorization").split(" ")
+          
+        if token[0] == "Bearer": 
+            
+            # Verify admin 
+            user = User.verify_token(token[1])
+                
+            if not user:
+                return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
 
-        user = User.verify_token(token)
-        
-        if not user:
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
-
-        return jsonify({ 'status': 'expired', 'data': False, 'message': '', 'error': 'token expired' })
+            return jsonify({ 'status': 'expired', 'data': False, 'message': '', 'error': 'token expired' })
     except: 
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot authouthorize user' })
 
@@ -37,15 +40,19 @@ def user_auth():
 @app.route('/api/admin-login', methods=['GET', 'POST'])
 def admin_login():
     try:
-        data = json.loads(request.data)
+        if request.authorization: 
 
-        # query db to get user and check pass
-        user = User.query.filter_by(username=data['username']).first()
+            # Login credentials 
+            username = request.authorization.username
+            password = request.authorization.password
 
-        if user is None or not user.check_password(data['password']):
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Invalid credentials' })
-        
-        return jsonify({ 'status': 'ok', 'data': user.get_token(), 'message': '', 'error': '' })
+            # query db to get user and check pass
+            user = User.query.filter_by(username=username).first()
+
+            if user is None or not user.check_password(password):
+                return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Invalid credentials' })
+            
+            return jsonify({ 'status': 'ok', 'data': user.get_token(), 'message': '', 'error': '' })
     except:
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot log in' })
 
@@ -55,34 +62,37 @@ def contact():
     try:
         if request.method == 'POST': 
             if request.form: 
+                
+                # ReCaptcha client token
+                token = request.headers.get("Authorization").split(" ")
+                
+                if token[0] == 'Bearer': 
+                    
+                    # Verify token 
+                    response = requests.post(
+                        url=app.config['RECAPTCHA_VERIFY_URL'], 
+                        params={
+                            'secret': app.config['RECAPTCHA_SECRET'], 
+                            'response': token[1]
+                        }
+                    )
+                    
+                    result = response.json()
 
-                # Verify ReCaptcha client token
-                token = request.form['token']
+                    # Return error if token verification fails 
+                    if response.status_code != 200 or not result['success']: 
+                        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Token verification failed, try again.' })
+                    
+                    # Send form data  
+                    name = request.form['name']
+                    email = request.form['email']
+                    subject = request.form['subject']
+                    phone = request.form['phone']
+                    message = request.form['message']
 
-                response = requests.post(
-                    url=app.config['RECAPTCHA_VERIFY_URL'], 
-                    params={
-                        'secret': app.config['RECAPTCHA_SECRET'], 
-                        'response': token 
-                    }
-                )
-
-                result = response.json()
-
-                # Return error if token verification fails 
-                if response.status_code != 200 or not result['success']: 
-                    return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Token verification failed, try again.' })
-
-                # Send form data  
-                name = request.form['name']
-                email = request.form['email']
-                subject = request.form['subject']
-                phone = request.form['phone']
-                message = request.form['message']
-
-                sendEmail(name=name, email=email, phone=phone, subj=subject, message=message)
-
-                return jsonify({ 'status': 'ok', 'data': [], 'message': 'Your message was sent, thank you.', 'error': '' })
+                    sendEmail(name=name, email=email, phone=phone, subj=subject, message=message)
+                    
+                    return jsonify({ 'status': 'ok', 'data': [], 'message': 'Your message was sent, thank you.', 'error': '' })
     except:
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Your message did not send. Try again.' })
 
@@ -91,39 +101,42 @@ def contact():
 def post():
     try:
         if request.method == 'POST':
-
-            # Verify admin token 
-            token = request.headers.get('token')
             
-            user = User.verify_token(token)
-
-            if not user:
-                return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'User was not found' })
-
-            # Get image data 
-            image = request.files['file']
-            filename = secure_filename(image.filename)
-            bucket_name = app.config['S3_BUCKET_NAME']
-
-            # Send to S3 
-            status = uploadToS3(image, filename, bucket_name)
+            # Admin token 
+            token = request.headers.get('Authorization').split(" ")
             
-            if not status: 
-                return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot upload image to cloud.' })
+            if token[0] == "Bearer": 
                 
-            # Save url in db w/ upload type 
-            image_url = f'https://{bucket_name}.s3.amazonaws.com/{filename}'
-            
-            upload_type = request.form['upload_type'].lower()
-            
-            post = ImagePost(user_id=user.id, type=upload_type, url=image_url)
-                
-            db.session.add(post)
-            db.session.commit()
+                # Verify admin 
+                user = User.verify_token(token[1])
 
-            return jsonify({ 'status': 'ok', 'data': {'id': post.post_id, 'type': post.type, 'url': post.url}, 'message': 'Image added', 'error': '' })
+                if not user:
+                    return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'User was not found' })
+
+                # Get image data 
+                image = request.files['file']
+                filename = secure_filename(image.filename)
+                bucket_name = app.config['S3_BUCKET_NAME']
+
+                # Send to S3 
+                status = uploadToS3(image, filename, bucket_name)
+                
+                if not status: 
+                    return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot upload image to cloud.' })
+                    
+                # Save url in db w/ upload type 
+                image_url = f'https://{bucket_name}.s3.amazonaws.com/{filename}'
+                
+                upload_type = request.form['upload_type'].lower()
+                
+                post = ImagePost(user_id=user.id, type=upload_type, url=image_url)
+                    
+                db.session.add(post)
+                db.session.commit()
+
+                return jsonify({ 'status': 'ok', 'data': {'id': post.post_id, 'type': post.type, 'url': post.url}, 'message': 'Image added', 'error': '' })
     except:
-        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Token expired' })
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot add image' })
 
 # Retrieve all images
 @app.route('/api/retrieve-images', methods=['GET', 'POST'])
@@ -142,25 +155,28 @@ def retrieveImage():
 @app.route('/api/image-delete', methods=['GET', 'POST'])
 def deleteImage():
     try:
-        # Verify admin
+        # ID & Admin token 
         id = request.headers.get('id')
-        token = request.headers.get('token')
+        token = request.headers.get('Authorization').split(" ")
 
-        user = User.verify_token(token)
-        
-        if not user:
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
+        if token[0] == "Bearer": 
+            
+            # Verify admin 
+            user = User.verify_token(token[1])
+            
+            if not user:
+                return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
 
-        # Image to delete 
-        image = ImagePost.query.filter_by(post_id=id).first()
-        
-        if not image:
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot find image' })
+            # Image to delete 
+            image = ImagePost.query.filter_by(post_id=id).first()
+            
+            if not image:
+                return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot find image' })
 
-        db.session.delete(image)
-        db.session.commit()
-        
-        return jsonify({ 'status': 'ok', 'data': { 'id': image.post_id }, 'message': 'Image deleted', 'error': '' })
+            db.session.delete(image)
+            db.session.commit()
+            
+            return jsonify({ 'status': 'ok', 'data': { 'id': image.post_id }, 'message': 'Image deleted', 'error': '' })
     except:
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Token expired or another issue' })
 
@@ -178,55 +194,59 @@ def newsletter():
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot subscribe to newsletter.' })
 
 # Adds blog post 
-@app.route('/api/add-blogpost', methods=['GET', 'POST'])
+@app.route('/api/add-blogpost', methods=['POST'])
 def addBlogPost():
     try:    
         if request.method == 'POST':
-            # Verify admin 
-            token = request.headers.get('token')
 
-            user = User.verify_token(token)
+            # Admin token  
+            token = request.headers.get('Authorization').split(" ")
+
+            if token[0] == "Bearer": 
+                
+                # Verify token 
+                user = User.verify_token(token[1])
+                
+                if not user:
+                    return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
+
+                # Send image to S3
+                image = request.files['image']
+                filename = secure_filename(image.filename)
+                bucket_name = app.config['S3_BUCKET_NAME']
+
+                status = uploadToS3(image, filename, bucket_name)
             
-            if not user:
-                return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
+                if not status: 
+                    return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot upload image to cloud.' })
+                
+                # Save url in db w/ upload type 
+                image_url = f'https://{bucket_name}.s3.amazonaws.com/{filename}'
 
-            # Send image to S3
-            image = request.files['image']
-            filename = secure_filename(image.filename)
-            bucket_name = app.config['S3_BUCKET_NAME']
+                title = request.files['title']
+                date = request.files['date']
+                text = request.files['text']
 
-            status = uploadToS3(image, filename, bucket_name)
-        
-            if not status: 
-                return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot upload image to cloud.' })
-            
-            # Save url in db w/ upload type 
-            image_url = f'https://{bucket_name}.s3.amazonaws.com/{filename}'
+                # Create slug from post title 
+                created_path = slugify(title)
+                
+                # Create post 
+                blogPost = BlogPost(
+                    title=title,
+                    author=app.config['ADMIN_NAME'],
+                    path=created_path, 
+                    url= image_url,
+                    content=text, 
+                    date_posted=date
+                )
+                
+                # Add post 
+                db.session.add(blogPost)
+                db.session.commit()
+                
+                post = BlogPost.query.order_by(desc(BlogPost.blog_post_id)).first()
 
-            title = request.files['title']
-            date = request.files['date']
-            text = request.files['text']
-
-            # Create slug from post title 
-            created_path = slugify(title)
-            
-            # Create post 
-            blogPost = BlogPost(
-                title=title,
-                author=app.config['ADMIN_NAME'],
-                path=created_path, 
-                url= image_url,
-                content=text, 
-                date_posted=date
-            )
-            
-            # Add post 
-            db.session.add(blogPost)
-            db.session.commit()
-            
-            post = BlogPost.query.order_by(desc(BlogPost.blog_post_id)).first()
-
-            return jsonify({ 'status': 'ok', 'data': {'id': post.blog_post_id, 'title': post.title, 'author': post.author, 'url': post.url, 'path': post.path, 'content': post.content, 'date_posted': post.date_posted} , 'message': 'Blog post is posted', 'error': '' })
+                return jsonify({ 'status': 'ok', 'data': {'id': post.blog_post_id, 'title': post.title, 'author': post.author, 'url': post.url, 'path': post.path, 'content': post.content, 'date_posted': post.date_posted} , 'message': 'Blog post is posted', 'error': '' })
     except: 
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot add blog post' })
     
@@ -333,23 +353,25 @@ def getSinglePost():
 def deleteBlogPost(): 
     try: 
         # Verify admin 
-        token = request.headers.get('token')
+        token = request.headers.get('Authorization').split(" ")
         id = request.headers.get('id')
 
-        user = User.verify_token(token)
-        
-        if not user:
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
+        if token[0] == "Bearer": 
 
-        # Query db 
-        post = BlogPost.query.filter_by(blog_post_id=id).first()
+            user = User.verify_token(token[1])
+            
+            if not user:
+                return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
 
-        # Delete post 
-        db.session.delete(post)
-        db.session.commit()
+            # Query db 
+            post = BlogPost.query.filter_by(blog_post_id=id).first()
 
-        # Return 'deleted' Post ID --> for UI 
-        return jsonify({ 'status': 'ok', 'data': post.blog_post_id , 'message': 'blog post deleted', 'error': '' })
+            # Delete post 
+            db.session.delete(post)
+            db.session.commit()
+
+            # Return 'deleted' Post ID --> for UI 
+            return jsonify({ 'status': 'ok', 'data': post.blog_post_id , 'message': 'blog post deleted', 'error': '' })
     except: 
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot delete post' })
 
@@ -375,43 +397,49 @@ def getNextPosts():
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot retrieve posts' })
 
 # Admin password reset 
-@app.route('/api/reset-password', methods=['GET', 'POST'])
+@app.route('/api/reset-password', methods=['POST'])
 def resetPassword():
     try: 
-        # Verify email in db 
-        email = request.headers.get('email')
+        if request.json:
+            # Email to verify 
+            email = request.json
 
-        user = User.query.filter_by(username=email).first()
-        
-        if not user: 
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'invalid email' })
-        
-        # Send email w/ reset token 
-        token = user.get_reset_password_token()
+            # Verify email 
+            user = User.query.filter_by(username=email).first()
+            
+            if not user: 
+                return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'invalid email' })
+            
+            # Send email with reset token 
+            token = user.get_reset_password_token()
 
-        sendResetPassword(email, html_body=render_template('/reset_password.html', user=user.username, token=token))
+            sendResetPassword(email, html_body=render_template('/reset_password.html', user=user.username, token=token))
 
-        return jsonify({ 'status': 'ok', 'data': [], 'message': 'Check your email to reset your password', 'error': '' })
+            return jsonify({ 'status': 'ok', 'data': [], 'message': 'Check your email to reset your password', 'error': '' })
     except: 
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot reset password'})
 
 # Changes passoword after admin is verified 
-@app.route('/api/change_password', methods=['GET', 'POST'])
+@app.route('/api/change_password', methods=['POST'])
 def reset_password():
     try: 
-        
-        password = request.headers.get('password')
-        token = request.headers.get('token')
-        
-        user = User.verify_reset_password_token(token)
+        if request.json: 
+            # Verify token
+            token = request.headers.get("Authorization").split(" ")
+            password = request.json
+            
+            if token[0] == "Bearer": 
 
-        if not user: 
-            return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot reset password'})
+                user = User.verify_reset_password_token(token[1])
 
-        user.set_password(password)
-        db.session.commit()
+                if not user: 
+                    return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot reset password'})
 
-        return jsonify({ 'status': 'ok', 'data': [], 'message': 'Success, password was reset', 'error': ''})
+                #Set new password
+                user.set_password(password)
+                db.session.commit()
+
+                return jsonify({ 'status': 'ok', 'data': [], 'message': 'Success, password was reset', 'error': ''})
     except: 
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot reset password'})
 
