@@ -25,3 +25,7 @@ class Config(object):
     S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME')
     S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY')
     S3_SECRET_KEY = os.environ.get('S3_SECRET_KEY')
+
+    # google 
+    RECAPTCHA_SECRET = os.environ.get('RECAPTCHA_SECRET')
+    RECAPTCHA_VERIFY_URL = os.environ.get('RECAPTCHA_VERIFY_URL')
