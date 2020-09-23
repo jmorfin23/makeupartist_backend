@@ -181,16 +181,15 @@ def deleteImage():
     except:
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Token expired or another issue' })
 
-# Subscribe to newsletter 
+# Subscribe to newsletter # TODO: WHEN EMAIL LIST IS SET UP 
 @app.route('/api/sub-newsletter', methods=['POST'])
 def newsletter():
     try:
-        email = request.headers.get('email')
-        
-        # TODO: WHEN EMAIL LIST IS SET UP 
+        if request.json: 
 
-        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'There is currently maintence being done, try again later.' })
-        # return jsonify({ 'status': 'ok', 'data': [], 'message': 'You have subscribed! Thank you.', 'error': '' })
+            email = request.json
+        
+        return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'The newsletter is not yet set-up, try again later.' })
     except:
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot subscribe to newsletter.' })
 
@@ -199,10 +198,10 @@ def newsletter():
 def addBlogPost():
     try:    
         if request.method == 'POST':
-
+            
             # Admin token  
             token = request.headers.get('Authorization').split(" ")
-
+            
             if token[0] == "Bearer": 
                 
                 # Verify token 
@@ -210,24 +209,24 @@ def addBlogPost():
                 
                 if not user:
                     return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'token expired ' })
-
+                
                 # Send image to S3
                 image = request.files['image']
                 filename = secure_filename(image.filename)
                 bucket_name = app.config['S3_BUCKET_NAME']
-
+                
                 status = uploadToS3(image, filename, bucket_name)
-            
+                
                 if not status: 
                     return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot upload image to cloud.' })
                 
                 # Save url in db w/ upload type 
                 image_url = f'https://{bucket_name}.s3.amazonaws.com/{filename}'
-
-                title = request.files['title']
-                date = request.files['date']
-                text = request.files['text']
-
+               
+                title = request.form['title']
+                date = request.form['date']
+                text = request.form['text']
+                
                 # Create slug from post title 
                 created_path = slugify(title)
                 
@@ -236,7 +235,7 @@ def addBlogPost():
                     title=title,
                     author=app.config['ADMIN_NAME'],
                     path=created_path, 
-                    url= image_url,
+                    url=image_url,
                     content=text, 
                     date_posted=date
                 )
