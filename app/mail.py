@@ -14,9 +14,7 @@ def async1(f):
 # SEND EMAIL 
 @async1
 def send_async_email(app, msg):
-    print('inside async mail')
     with app.app_context():
-        print('inside this')
         mail.send(msg)
 
 
