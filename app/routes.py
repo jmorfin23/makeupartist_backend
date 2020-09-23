@@ -41,17 +41,17 @@ def user_auth():
 def admin_login():
     try:
         if request.authorization: 
-
+            
             # Login credentials 
             username = request.authorization.username
             password = request.authorization.password
-
+    
             # query db to get user and check pass
             user = User.query.filter_by(username=username).first()
-
+           
             if user is None or not user.check_password(password):
                 return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Invalid credentials' })
-            
+           
             return jsonify({ 'status': 'ok', 'data': user.get_token(), 'message': '', 'error': '' })
     except:
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Cannot log in' })
@@ -61,6 +61,7 @@ def admin_login():
 def contact():
     try:
         if request.method == 'POST': 
+           
             if request.form: 
                 
                 # ReCaptcha client token
@@ -89,9 +90,9 @@ def contact():
                     subject = request.form['subject']
                     phone = request.form['phone']
                     message = request.form['message']
-
-                    sendEmail(name=name, email=email, phone=phone, subj=subject, message=message)
                     
+                    sendEmail(name=name, email=email, phone=phone, subj=subject, message=message)
+            
                     return jsonify({ 'status': 'ok', 'data': [], 'message': 'Your message was sent, thank you.', 'error': '' })
     except:
         return jsonify({ 'status': 'error', 'data': [], 'message': '', 'error': 'Your message did not send. Try again.' })

@@ -14,15 +14,17 @@ def async1(f):
 # SEND EMAIL 
 @async1
 def send_async_email(app, msg):
+    print('inside async mail')
     with app.app_context():
+        print('inside this')
         mail.send(msg)
 
 
-def sendEmail(name, email, phone, subj, message, sender="app.config['ADMINS']"):
+def sendEmail(name, email, phone, subj, message):
     msg = Message(
         subject=subj,
-        sender=sender,
-        recipients=app.config['ADMINS']
+        sender=app.config['ADMINS'],
+        recipients=[app.config['ADMINS']]
     )
     msg.html = render_template('/mail.html', name=name, message=message, phone=phone, email=email, subj=subj)
     
